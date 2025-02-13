@@ -1,0 +1,33 @@
+[project]
+name = "sr-linux"
+version = "0.1.0"
+description = "sr linux configuration testing"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "httpx>=0.28.1",
+    "pydantic>=2.10.6",
+    "pydantic-srlinux",
+    "pydantic-yaml>=1.4.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.9.6",
+]
+
+[project.scripts]
+ysrcli = "yang_srlab:main"
+
+[tool.ruff]
+# Set the maximum line length to 120.
+line-length = 120
+
+[tool.ruff.lint]
+select = ["ALL"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.uv.sources]
+pydantic-srlinux = { git = "https://github.com/srl-labs/pydantic-srlinux" }

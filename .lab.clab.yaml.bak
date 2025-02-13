@@ -1,0 +1,74 @@
+name: srl_lab
+mgmt:
+  network: fixedips
+  ipv4-subnet: 172.100.100.0/24
+topology:
+  kinds:
+    nokia_srlinux:
+      image: ghcr.io/nokia/srlinux
+      type: ixrd3
+  nodes:
+    DCI-01:
+      kind: nokia_srlinux
+      mgmt-ipv4: 172.100.100.240
+    S-ET1-SP-CLI-01:
+      kind: nokia_srlinux
+      mgmt-ipv4: 172.100.100.11
+    S-ET1-SP-CLI-02:
+      kind: nokia_srlinux
+      mgmt-ipv4: 172.100.100.12
+    S-ET1-LF-CLI-0101:
+      kind: nokia_srlinux
+      mgmt-ipv4: 172.100.100.101
+    S-ET1-LF-CLI-0102:
+      kind: nokia_srlinux
+      mgmt-ipv4: 172.100.100.102
+    S-ET2-SP-CLI-01:
+      kind: nokia_srlinux
+      mgmt-ipv4: 172.100.100.21
+    S-ET2-SP-CLI-02:
+      kind: nokia_srlinux
+      mgmt-ipv4: 172.100.100.22
+    S-ET2-LF-CLI-0101:
+      kind: nokia_srlinux
+      mgmt-ipv4: 172.100.100.201
+    S-ET2-LF-CLI-0102:
+      kind: nokia_srlinux
+      mgmt-ipv4: 172.100.100.202
+  links:
+    - endpoints:
+        - "S-ET1-LF-CLI-0101:ethernet-1/19"
+        - "S-ET1-SP-CLI-01:ethernet-1/1"
+    - endpoints:
+        - "S-ET1-LF-CLI-0101:ethernet-1/20"
+        - "S-ET1-SP-CLI-02:ethernet-1/1"
+    - endpoints:
+        - "S-ET1-LF-CLI-0102:ethernet-1/19"
+        - "S-ET1-SP-CLI-01:ethernet-1/2"
+    - endpoints:
+        - "S-ET1-LF-CLI-0102:ethernet-1/20"
+        - "S-ET1-SP-CLI-02:ethernet-1/2"
+    - endpoints:
+        - "S-ET2-LF-CLI-0101:ethernet-1/19"
+        - "S-ET2-SP-CLI-01:ethernet-1/1"
+    - endpoints:
+        - "S-ET2-LF-CLI-0101:ethernet-1/20"
+        - "S-ET2-SP-CLI-02:ethernet-1/1"
+    - endpoints:
+        - "S-ET2-LF-CLI-0102:ethernet-1/19"
+        - "S-ET2-SP-CLI-01:ethernet-1/2"
+    - endpoints:
+        - "S-ET2-LF-CLI-0102:ethernet-1/20"
+        - "S-ET2-SP-CLI-02:ethernet-1/2"
+    - endpoints:
+        - "S-ET1-SP-CLI-01:ethernet-1/20"
+        - "DCI-01:ethernet-1/1"
+    - endpoints:
+        - "S-ET1-SP-CLI-02:ethernet-1/20"
+        - "DCI-01:ethernet-1/2"
+    - endpoints:
+        - "S-ET2-SP-CLI-01:ethernet-1/20"
+        - "DCI-01:ethernet-1/3"
+    - endpoints:
+        - "S-ET2-SP-CLI-02:ethernet-1/20"
+        - "DCI-01:ethernet-1/4"
