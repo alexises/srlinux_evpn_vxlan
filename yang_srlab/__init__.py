@@ -2,9 +2,11 @@
 
 from argparse import ArgumentParser, Namespace
 
-from .dataclass.interface import InterfaceContainer
+from rich.console import Console
+
+from .compute import YangController
+from .idempotency import IdempotencyManager
 from .metamodel import get_model
-from .yang import Action, SRLClient
 
 
 def parse_args() -> Namespace:
@@ -15,32 +17,25 @@ def parse_args() -> Namespace:
     """
     args = ArgumentParser("srlab YANG config management")
     args.add_argument("configfile", help="Configuration file")
+    args.add_argument("--host", "-H", action="append", default=[])
+    args.add_argument("--no-dryrun", action="store_true", default=False)
+    args.add_argument("--show-config", "-C", action="store_true", default=False)
 
     return args.parse_args()
 
 
 def main() -> None:
     """Main entrypoint."""
+    console = Console()
     args = parse_args()
     model = get_model(args.configfile)
 
-    switch = model.fabrics[0].lifs[0]
-    ifaces = InterfaceContainer(20)
-    yang_data = ifaces.to_yang()
-
-    print(
-        yang_data.model_dump_json(
-            indent=2,
-            exclude_none=True,
-            exclude_unset=True,
-        ),
-    )
-    print(f"connect to : {switch.address}")
-    with SRLClient(host=str(switch.address)) as client:
-        client.add_set_command(action=Action.REPLACE, path="/interface", value=yang_data)
-        diff_data = client.send_diff_request()
-    print(diff_data.json()["result"][0])
-    # print(diff_data.json()["result"][0])
+    console.log("read metamodel", style="bold yellow")
+    controller = YangController(model)
+    console.log("transform meta model into configuration", style="bold yellow")
+    computed_elements = controller.compute_all(args.host)
+    manager = IdempotencyManager(computed_elements, console, with_config_print=args.show_config)
+    manager.run()
 
 
 if __name__ == "__main__":

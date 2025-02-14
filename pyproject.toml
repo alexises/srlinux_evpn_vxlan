@@ -9,11 +9,14 @@ dependencies = [
     "pydantic>=2.10.6",
     "pydantic-srlinux",
     "pydantic-yaml>=1.4.0",
+    "requests>=2.32.3",
+    "rich>=13.9.4",
 ]
 
 [dependency-groups]
 dev = [
     "ruff>=0.9.6",
+    "types-requests>=2.32.0.20241016",
 ]
 
 [project.scripts]
@@ -22,12 +25,18 @@ ysrcli = "yang_srlab:main"
 [tool.ruff]
 # Set the maximum line length to 120.
 line-length = 120
+target-version = "py313"
 
 [tool.ruff.lint]
 select = ["ALL"]
+ignore = ["T201", "ERA001"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.uv.sources]
 pydantic-srlinux = { git = "https://github.com/srl-labs/pydantic-srlinux" }
+
+[[tool.mypy.overrides]]
+module = ["pydantic_srlinux.*"]
+follow_untyped_imports = true

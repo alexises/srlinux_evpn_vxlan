@@ -1,128 +1,40 @@
-"""Manage yang connexion to the network gear."""
+"""Define yang access."""
 
-import datetime
-import logging
-from enum import Enum
-from typing import Any, Literal, Optional
+from datetime import UTC, datetime
+from typing import Self
 
-import httpx
-from pydantic import BaseModel
-
-logger = logging.getLogger(__name__)
+from requests import Session
 
 
-class Action(str, Enum):
-    REPLACE = "replace"
-    UPDATE = "update"
-    DELETE = "delete"
+class SRClient:
+    """Define srclient."""
 
+    def __init__(self: Self, host: str, username: str, password: str) -> None:
+        """Constructor.
 
-class Datastore(str, Enum):
-    RUNNING = "running"
-    STATE = "state"
-
-
-class RequestMethod(str, Enum):
-    SET = "set"
-    GET = "get"
-    DIFF = "diff"
-
-
-class SetCommand(BaseModel):
-    """A command structure for the set method."""
-
-    action: Action
-    path: str
-    # value is a json encoded string
-    value: Any
-
-
-class GetCommand(BaseModel):
-    """A command structure for the get method."""
-
-    path: str
-    datastore: Datastore
-
-
-class Params(BaseModel):
-    commands: list[SetCommand]
-
-
-class JsonRpcRequest(BaseModel):
-    jsonrpc: Literal["2.0"] = "2.0"
-    id: str
-    method: RequestMethod
-    params: Params
-
-
-class SRLClient(httpx.Client):
-    def __init__(self, host: str, username: str = "admin", password: str = "NokiaSrl1!") -> None:
-        super().__init__(verify=False)
-        self.base_url: str = f"http://{host}"
-        self.jsonrpc_url: str = f"{self.base_url}/jsonrpc"
-        self.set_commands: list[SetCommand] | None = []
-        self.get_commands: list[GetCommand] | None = []
-        self.username: str = username
-        self.password: str = password
-        self.auth = (self.username, self.password)
-
-    def add_set_command(self, action: Action, path: str, value: BaseModel) -> None:
-        """Add command to the set request.
-        value: srlinux pydantic model to be dumped to json.
+        Args:
+            self (Self): self
+            host (str): host
+            username (str): username
+            password (str): password
         """
-        cmd = SetCommand(
-            action=action,
-            path=path,
-            value=value.model_dump(
-                exclude_none=True,
-                exclude_unset=True,
-                by_alias=True,
-            )["srl_nokia-interfaces:interface"],
-        )
-        if self.set_commands is None:
-            self.set_commands = []
+        self._url = f"http://{host}/jsonrpc"
+        self._client = Session()
+        self._client.auth = (username, password)
 
-        self.set_commands.append(cmd)
+    def diff(self: Self, path: str, data: dict) -> dict:
+        """Get diff from command and path.
 
-    def send_diff_request(self) -> httpx.Response:
-        """Make diff request via JSON RPC."""
-        if self.set_commands is None:
-            msg = "No commands to send"
-            raise ValueError(msg)
-
-        request = JsonRpcRequest(
-            id=datetime.datetime.now().isoformat(),
-            method=RequestMethod.DIFF,
-            params=Params(commands=self.set_commands),
-        )
-
-        response = self.post(url=self.jsonrpc_url, content=request.model_dump_json())
-
-        logger.debug(
-            f"send_patch_request got response: status={response.status_code} text={response.text}",
-        )
-
-        return response
-
-    def send_set_request(self) -> httpx.Response:
-        """Send set request via JSON RPC."""
-        if self.set_commands is None:
-            msg = "No commands to send"
-            raise ValueError(msg)
-
-        request = JsonRpcRequest(
-            id=datetime.datetime.now().isoformat(),
-            method=RequestMethod.SET,
-            params=Params(commands=self.set_commands),
-        )
-
-        response = self.post(url=self.jsonrpc_url, content=request.model_dump_json())
-
-        logger.debug(
-            f"send_set_request got response: status={response.status_code} text={response.text}",
-        )
-
-        # reset the set commands
-        self.set_commands = []
-
-        return response
+        Args:
+            self (Self): self
+            path (str): path to where performing the diff
+            data (dict): data to compare
+        """
+        query = {
+            "jsonrpc": "2.0",
+            "id": datetime.now(tz=UTC).isoformat(),
+            "method": "diff",
+            "params": {"commands": [{"action": "replace", "path": path, "value": data}]},
+        }
+        response = self._client.post(self._url, json=query)
+        return response.json()
