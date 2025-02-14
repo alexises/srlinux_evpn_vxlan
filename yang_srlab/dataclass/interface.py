@@ -2,7 +2,16 @@
 
 from typing import Self
 
-from pydantic_srlinux.models.interfaces import EnumerationEnum, InterfaceListEntry, Model
+from pydantic_srlinux.models.interfaces import (
+    DhcpClientContainer,
+    DhcpClientContainer2,
+    EnumerationEnum,
+    InterfaceListEntry,
+    Ipv4Container,
+    Ipv6Container,
+    Model,
+    SubinterfaceListEntry,
+)
 
 
 class Interface:
@@ -137,4 +146,25 @@ class InterfaceContainer:
             InterfaceListEntry: YangObject
         """
         ifaces = [i.to_yang() for i in self._interfaces.values()]
+
+        # manualy creating the management interface
+        mgmt_iface = InterfaceListEntry(
+            name="mgmt0",
+            admin_state=EnumerationEnum.enable,
+            subinterface=[
+                SubinterfaceListEntry(
+                    index=0,
+                    admin_state=EnumerationEnum.enable,
+                    ipv4=Ipv4Container(
+                        admin_state=EnumerationEnum.enable,
+                        dhcp_client=DhcpClientContainer(),
+                    ),
+                    ipv6=Ipv6Container(
+                        admin_state=EnumerationEnum.enable,
+                        dhcp_client=DhcpClientContainer2(),
+                    ),
+                )
+            ],
+        )
+        ifaces.append(mgmt_iface)
         return Model(interface=ifaces)

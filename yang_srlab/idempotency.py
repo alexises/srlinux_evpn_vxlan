@@ -18,6 +18,10 @@ from .metamodel import Switch
 from .yang import SRClient
 
 
+def _cleanup_diff(diff: str) -> str:
+    return diff.replace("srl_nokia-interfaces-ip-dhcp:", "").replace("srl_nokia-interfaces:", "")
+
+
 class IdempotencyManager:
     """Manage idempotency flow of checking and commiting configuration on the switch."""
 
@@ -55,7 +59,7 @@ class IdempotencyManager:
         self._console.log("Print configuration", style="bold yellow")
         for switch, data in self._switchs:
             syntax = Syntax(
-                dumps(data, indent=2).replace("srl_nokia-interfaces:", ""),
+                _cleanup_diff(dumps(data, indent=2)),
                 "json",
                 theme="monokai",
                 line_numbers=True,
@@ -72,10 +76,13 @@ class IdempotencyManager:
         self._console.log("Print diff ", style="bold yellow")
         for switch, data in self._switchs:
             client = SRClient(str(switch.address), switch.username, switch.password)
-            diff_data = client.diff("/interface", data["srl_nokia-interfaces:interface"])
-            syntax = Syntax(diff_data["result"][0], "diff", theme="monokai", line_numbers=True)
-            panel = Panel(syntax, title=f"Switch : {switch.name}", title_align="center")
-            self._console.print(panel)
+            diff_data = client.diff("/interface[name=*]", data["srl_nokia-interfaces:interface"])
+            if "result" in diff_data:
+                syntax = Syntax(diff_data["result"][0], "diff", theme="monokai", line_numbers=True)
+                panel = Panel(syntax, title=f"Switch : {switch.name}", title_align="center")
+                self._console.print(panel)
+            else:
+                self._console.print(diff_data)
 
     def run(self: Self) -> None:
         """Run configuration.
