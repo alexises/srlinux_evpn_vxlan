@@ -97,6 +97,9 @@ class YangController:
             port.kind = InterfaceKind.L3
             port.ips[0] = IPv4Interface(f"{leaf_spine_interface}/31")
 
+            # add port to routing interface
+            container.router.interface.append(f"{port_name}.0")
+
     def _compute_spine_link(
         self: Self,
         fabric: Fabric,
@@ -120,6 +123,9 @@ class YangController:
             port.kind = InterfaceKind.L3
             port.ips[0] = IPv4Interface(f"{leaf_spine_interface}/31")
 
+            # add port to routing instance
+            container.router.interface.append(f"{port_name}.0")
+
     def _compute_leaf_loopback(
         self: Self,
         fabric: Fabric,
@@ -139,6 +145,10 @@ class YangController:
         iface.description = "EVPN TEP/OSPF loopback"
         iface.ips[0] = IPv4Interface(f"{loopback}/32")
 
+        # also set router_id conviniently
+        container.router.router_id = loopback
+        container.router.interface.append("system0.0")
+
     def _compute_spine_loopback(
         self: Self,
         fabric: Fabric,
@@ -157,3 +167,7 @@ class YangController:
         iface.kind = InterfaceKind.L3
         iface.description = "EVPN TEP/OSPF loopback"
         iface.ips[0] = IPv4Interface(f"{loopback}/32")
+
+        # also set router_id conviniently
+        container.router.router_id = loopback
+        container.router.interface.append("system0.0")

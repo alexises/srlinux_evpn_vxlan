@@ -19,7 +19,12 @@ from .yang import SRClient
 
 
 def _cleanup_candidate_config(diff: str) -> str:
-    return diff.replace("srl_nokia-interfaces-ip-dhcp:", "").replace("srl_nokia-interfaces:", "")
+    return (
+        diff.replace("srl_nokia-interfaces-ip-dhcp:", "")
+        .replace("srl_nokia-interfaces:", "")
+        .replace("srl_nokia-network-instance:", "")
+        .replace("srl_nokia-linux:", "")
+    )
 
 
 def _build_srclient(switch: Switch) -> SRClient:

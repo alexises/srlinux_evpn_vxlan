@@ -3,6 +3,7 @@
 from typing import Self
 
 from .interface import InterfaceContainer
+from .routing import RoutingContainer
 
 
 class SwitchContainer:
@@ -15,6 +16,7 @@ class SwitchContainer:
             self (Self): self.
         """
         self._interfaces = InterfaceContainer(20)
+        self._routing = RoutingContainer()
 
     @property
     def interfaces(self: Self) -> InterfaceContainer:
@@ -27,6 +29,18 @@ class SwitchContainer:
         """
         return self._interfaces
 
+    @property
+    def router(self: Self) -> RoutingContainer:
+        """Get routing container.
+
+        Args:
+            self (Self): self
+
+        Returns:
+            RoutingContainer: routing container
+        """
+        return self._routing
+
     def to_yang(self: Self) -> dict:
         """Get yang model.
 
@@ -36,10 +50,20 @@ class SwitchContainer:
         Returns:
             dict: yang model.
         """
-        output = self._interfaces.to_yang()
-        return output.model_dump(
-            mode="json",
-            exclude_none=True,
-            exclude_unset=True,
-            by_alias=True,
-        )
+        interface = self._interfaces.to_yang()
+        router = self._routing.to_yamg()
+
+        return {
+            **interface.model_dump(
+                mode="json",
+                exclude_none=True,
+                exclude_unset=True,
+                by_alias=True,
+            ),
+            **router.model_dump(
+                mode="json",
+                exclude_none=True,
+                exclude_unset=True,
+                by_alias=True,
+            ),
+        }
