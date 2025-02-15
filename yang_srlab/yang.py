@@ -39,6 +39,40 @@ class SRClient:
         response = self._client.post(self._url, json=query)
         return response.json()
 
+    def validate(self: Self, path: str, data: dict) -> dict:
+        """Validate from command and path.
+
+        Args:
+            self (Self): self
+            path (str): path to where performing the diff
+            data (dict): data to compare
+        """
+        query = {
+            "jsonrpc": "2.0",
+            "id": datetime.now(tz=UTC).isoformat(),
+            "method": "validate",
+            "params": {"commands": [{"action": "replace", "path": path, "value": data}]},
+        }
+        response = self._client.post(self._url, json=query)
+        return response.json()
+
+    def commit(self: Self, path: str, data: dict) -> dict:
+        """Commit from command and path.
+
+        Args:
+            self (Self): self
+            path (str): path to where performing the diff
+            data (dict): data to compare
+        """
+        query = {
+            "jsonrpc": "2.0",
+            "id": datetime.now(tz=UTC).isoformat(),
+            "method": "set",
+            "params": {"commands": [{"action": "replace", "path": path, "value": data}]},
+        }
+        response = self._client.post(self._url, json=query)
+        return response.json()
+
     def get_running_config(self: Self) -> dict:
         """Get running config.
 

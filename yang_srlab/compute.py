@@ -1,9 +1,11 @@
 """Make conputation to transform meta model into Yang represantation."""
 
+from ipaddress import IPv4Interface
 from typing import Self
 
-from .dataclass.interface import InterfaceContainer
-from .metamodel import Metamodel, Switch
+from .dataclass import SwitchContainer
+from .dataclass.interface import InterfaceKind
+from .metamodel import Fabric, Metamodel, Switch
 
 
 class YangController:
@@ -33,22 +35,43 @@ class YangController:
             for leaf in site.lifs:
                 if leaf.name not in allowed_switch and allowed_switch != []:
                     continue
-                computed_switch.append((leaf, self.compute_leaf(leaf)))
+                computed_switch.append((leaf, self.compute_leaf(site, leaf)))
         return computed_switch
 
-    def compute_leaf(self: Self, switch: Switch) -> dict:
+    def compute_leaf(self: Self, fabric: Fabric, switch: Switch) -> dict:
         """Compute configuration for leaf.
 
         Args:
             self (Self): Self.
+            fabric (Fabric): fabric object of the switch
             switch (Switch): switch object to compute.
         """
-        ifaces = InterfaceContainer(20)
-        ifaces.shutdown_all_interface()
+        container = SwitchContainer()
+        container.interfaces.shutdown_all_interface()
 
-        return ifaces.to_yang().model_dump(
-            mode="json",
-            exclude_none=True,
-            exclude_unset=True,
-            by_alias=True,
-        )
+        self._compute_spine_link(fabric, switch, container)
+
+        return container.to_yang()
+
+    def _compute_spine_link(
+        self: Self,
+        fabric: Fabric,
+        switch: Switch,
+        container: SwitchContainer,
+    ) -> None:
+        for spine_index, spine in enumerate(fabric.spines):
+            port_index = len(container.interfaces.interfaces) - len(fabric.spines) + spine_index
+            port_name = f"ethernet-1/{port_index+1}"
+            port = container.interfaces.interfaces[port_name]
+            leaf_index = fabric.lifs.index(switch)
+
+            subnet = list(fabric.pool.links.subnets(new_prefix=31))
+            subnet_count = len(subnet) // len(fabric.spines)
+            subnet_index = subnet_count * spine_index + leaf_index
+            leaf_spine_subnet = subnet[subnet_index]
+            leaf_spine_interface = list(leaf_spine_subnet.hosts())[1]
+
+            port.description = f"{spine.name} ethernet-1/{leaf_index+1}"
+            port.admin_state = True
+            port.kind = InterfaceKind.L3
+            port.ips[0] = IPv4Interface(f"{leaf_spine_interface}/31")

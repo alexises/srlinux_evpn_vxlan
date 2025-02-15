@@ -1,8 +1,11 @@
 """Describe interfaces."""
 
+from enum import Enum
+from ipaddress import IPv4Interface
 from typing import Self
 
 from pydantic_srlinux.models.interfaces import (
+    AddressListEntry,
     DhcpClientContainer,
     DhcpClientContainer2,
     EnumerationEnum,
@@ -12,6 +15,14 @@ from pydantic_srlinux.models.interfaces import (
     Model,
     SubinterfaceListEntry,
 )
+
+
+class InterfaceKind(Enum):
+    """Define interface kind."""
+
+    L2 = "l2"
+    L3 = "l3"
+    Undefined = ""
 
 
 class Interface:
@@ -27,6 +38,8 @@ class Interface:
         self._name: str = name
         self._description: str = ""
         self._admin_state: bool = False
+        self._kind: InterfaceKind = InterfaceKind.Undefined
+        self._ips: dict[int, IPv4Interface] = {}
 
     @property
     def name(self: Self) -> str:
@@ -84,6 +97,40 @@ class Interface:
         """
         self._admin_state = admin_state
 
+    @property
+    def kind(self: Self) -> InterfaceKind:
+        """Get interface kind.
+
+        Args:
+            self (Self): self
+
+        Returns:
+            InterfaceKind: self
+        """
+        return self._kind
+
+    @kind.setter
+    def kind(self: Self, kind: InterfaceKind) -> None:
+        """Set interface kind.
+
+        Args:
+            self (Self): self
+            kind (InterfaceKind): interface kind
+        """
+        self._kind = kind
+
+    @property
+    def ips(self: Self) -> dict[int, IPv4Interface]:
+        """Get ips lists.
+
+        Args:
+            self (Self): self
+
+        Returns:
+            dict[int, IPv4Interface]: ip list
+        """
+        return self._ips
+
     def to_yang(self: Self) -> InterfaceListEntry:
         """Return yang object suitable for seralization.
 
@@ -93,10 +140,24 @@ class Interface:
         Returns:
             InterfaceListEntry: YangObject
         """
+        subinterfaces: list[SubinterfaceListEntry] = []
+        if self._kind == InterfaceKind.L3:
+            for vlan_id, ip in self._ips.items():
+                subif = SubinterfaceListEntry(
+                    index=vlan_id,
+                    admin_state=EnumerationEnum.enable,
+                    ipv4=Ipv4Container(
+                        admin_state=EnumerationEnum.enable,
+                        address=[AddressListEntry(ip_prefix=str(ip))],
+                    ),
+                )
+                subinterfaces.append(subif)
+
         return InterfaceListEntry(
             name=self.name,
             description=self.description if self.description else None,
             admin_state=EnumerationEnum.enable if self.admin_state else EnumerationEnum.disable,
+            subinterface=subinterfaces if subinterfaces != [] else None,
         )
 
 

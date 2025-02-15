@@ -156,12 +156,52 @@ class IdempotencyManager:
         for sw_sto in self._switchs:
             client = _build_srclient(sw_sto.switch)
             diff_data = client.diff("/", sw_sto.merged_config)
-            if "result" in diff_data:
+            if "result" not in diff_data:
+                self._console.print(diff_data)
+            elif len(diff_data["result"]) > 0:
                 syntax = Syntax(diff_data["result"][0], "diff", theme="monokai", line_numbers=True)
                 panel = Panel(syntax, title=f"Switch : {sw_sto.switch.name}", title_align="center")
                 self._console.print(panel)
             else:
-                self._console.print(diff_data)
+                self._console.log(f"no diff for {sw_sto.switch.name}", style="green")
+
+    def valitate_config(self: Self) -> None:
+        """Validate configuration before commiting it.
+
+        Args:
+            self (Self): self
+        """
+        self._console.log("validate ", style="bold yellow")
+        for sw_sto in self._switchs:
+            client = _build_srclient(sw_sto.switch)
+            validate_info = client.validate("/", sw_sto.merged_config)
+            result = validate_info["result"][0]
+            if result == {}:
+                self._console.log(
+                    f"Switch {sw_sto.switch.name} successfully validated",
+                    style="green",
+                )
+            else:
+                self._console.log(f"Switch {sw_sto.switch.name} failed : {result}")
+
+    def commit_config(self: Self) -> None:
+        """Commit configuration the switch.
+
+        Args:
+            self (Self): self
+        """
+        self._console.log("commit ", style="bold yellow")
+        for sw_sto in self._switchs:
+            client = _build_srclient(sw_sto.switch)
+            validate_info = client.commit("/", sw_sto.merged_config)
+            result = validate_info["result"][0]
+            if result == {}:
+                self._console.log(
+                    f"Switch {sw_sto.switch.name} successfully commited",
+                    style="green",
+                )
+            else:
+                self._console.log(f"Switch {sw_sto.switch.name} failed : {result}")
 
     def run(self: Self) -> None:
         """Run configuration.
@@ -175,3 +215,6 @@ class IdempotencyManager:
             self.print_config()
         if self._with_diff:
             self.generate_diff()
+        self.valitate_config()
+        if self._with_commit:
+            self.commit_config()

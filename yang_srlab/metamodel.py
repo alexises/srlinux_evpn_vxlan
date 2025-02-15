@@ -1,6 +1,6 @@
 """Define metamodel class used as source of preprocessing."""
 
-from ipaddress import IPv4Address
+from ipaddress import IPv4Address, IPv4Network
 from pathlib import Path
 from typing import Self
 
@@ -24,11 +24,19 @@ class Switch(BaseModel):
     password: str = Field(default="")
 
 
+class FabricPool(BaseModel):
+    """Representation of ip ressource pool used inside the fabric."""
+
+    loopbacks: IPv4Network
+    links: IPv4Network
+
+
 class Fabric(BaseModel):
     """Representation of an evpn fabric."""
 
     spines: list[Switch]
     lifs: list[Switch]
+    pool: FabricPool
     site: str
 
 

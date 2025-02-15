@@ -18,7 +18,7 @@ def parse_args() -> Namespace:
     args = ArgumentParser("srlab YANG config management")
     args.add_argument("configfile", help="Configuration file")
     args.add_argument("--host", "-H", action="append", default=[])
-    args.add_argument("--no-dryrun", action="store_true", default=False)
+    args.add_argument("--no-dryrun", "-D", action="store_true", default=False)
     args.add_argument("--show-config", "-C", action="store_true", default=False)
 
     return args.parse_args()
@@ -34,7 +34,12 @@ def main() -> None:
     controller = YangController(model)
     console.log("transform meta model into configuration", style="bold yellow")
     computed_elements = controller.compute_all(args.host)
-    manager = IdempotencyManager(computed_elements, console, with_config_print=args.show_config)
+    manager = IdempotencyManager(
+        computed_elements,
+        console,
+        with_config_print=args.show_config,
+        with_commit=args.no_dryrun,
+    )
     manager.run()
 
 
