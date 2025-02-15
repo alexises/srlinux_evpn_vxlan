@@ -38,3 +38,21 @@ class SRClient:
         }
         response = self._client.post(self._url, json=query)
         return response.json()
+
+    def get_running_config(self: Self) -> dict:
+        """Get running config.
+
+        Args:
+            self (Self): self
+
+        Returns:
+            dict: running_config
+        """
+        query = {
+            "jsonrpc": "2.0",
+            "id": datetime.now(tz=UTC).isoformat(),
+            "method": "get",
+            "params": {"commands": [{"path": "/", "datastore": "running"}]},
+        }
+        response = self._client.post(self._url, json=query)
+        return response.json()["result"][0]

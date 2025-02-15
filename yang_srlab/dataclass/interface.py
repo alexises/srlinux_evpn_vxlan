@@ -163,7 +163,7 @@ class InterfaceContainer:
                         admin_state=EnumerationEnum.enable,
                         dhcp_client=DhcpClientContainer2(),
                     ),
-                )
+                ),
             ],
         )
         ifaces.append(mgmt_iface)
