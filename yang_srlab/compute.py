@@ -4,7 +4,7 @@ from ipaddress import IPv4Interface
 from typing import Self
 
 from .dataclass import SwitchContainer
-from .dataclass.interface import InterfaceKind
+from .dataclass.interface import Interface, InterfaceKind
 from .metamodel import Fabric, Metamodel, Switch
 
 
@@ -36,6 +36,10 @@ class YangController:
                 if leaf.name not in allowed_switch and allowed_switch != []:
                     continue
                 computed_switch.append((leaf, self.compute_leaf(site, leaf)))
+            for spine in site.spines:
+                if spine.name not in allowed_switch and allowed_switch != []:
+                    continue
+                computed_switch.append((spine, self.compute_spine(site, spine)))
         return computed_switch
 
     def compute_leaf(self: Self, fabric: Fabric, switch: Switch) -> dict:
@@ -50,8 +54,48 @@ class YangController:
         container.interfaces.shutdown_all_interface()
 
         self._compute_spine_link(fabric, switch, container)
+        self._compute_leaf_loopback(fabric, switch, container)
 
         return container.to_yang()
+
+    def compute_spine(self: Self, fabric: Fabric, switch: Switch) -> dict:
+        """Compute configuration for leaf.
+
+        Args:
+            self (Self): Self.
+            fabric (Fabric): fabric object of the switch
+            switch (Switch): switch object to compute.
+        """
+        container = SwitchContainer()
+        container.interfaces.shutdown_all_interface()
+
+        self._compute_leaf_link(fabric, switch, container)
+        self._compute_spine_loopback(fabric, switch, container)
+
+        return container.to_yang()
+
+    def _compute_leaf_link(
+        self: Self,
+        fabric: Fabric,
+        switch: Switch,
+        container: SwitchContainer,
+    ) -> None:
+        for leaf_index, leaf in enumerate(fabric.lifs):
+            port_index = leaf_index
+            port_name = f"ethernet-1/{port_index+1}"
+            port = container.interfaces.interfaces[port_name]
+            spine_index = fabric.spines.index(switch)
+
+            subnet = list(fabric.pool.links.subnets(new_prefix=31))
+            subnet_count = len(subnet) // len(fabric.spines)
+            subnet_index = subnet_count * spine_index + leaf_index
+            leaf_spine_subnet = subnet[subnet_index]
+            leaf_spine_interface = list(leaf_spine_subnet.hosts())[0]
+
+            port.description = f"{leaf.name} ethernet-1/{20-spine_index-1}"
+            port.admin_state = True
+            port.kind = InterfaceKind.L3
+            port.ips[0] = IPv4Interface(f"{leaf_spine_interface}/31")
 
     def _compute_spine_link(
         self: Self,
@@ -75,3 +119,41 @@ class YangController:
             port.admin_state = True
             port.kind = InterfaceKind.L3
             port.ips[0] = IPv4Interface(f"{leaf_spine_interface}/31")
+
+    def _compute_leaf_loopback(
+        self: Self,
+        fabric: Fabric,
+        switch: Switch,
+        container: SwitchContainer,
+    ) -> None:
+
+        iface = Interface("system0")
+        container.interfaces.interfaces[iface.name] = iface
+
+        leaf_index = fabric.lifs.index(switch)
+        subnet = list(fabric.pool.loopbacks.hosts())
+        loopback = subnet[32 + leaf_index]
+
+        iface.admin_state = True
+        iface.kind = InterfaceKind.L3
+        iface.description = "EVPN TEP/OSPF loopback"
+        iface.ips[0] = IPv4Interface(f"{loopback}/32")
+
+    def _compute_spine_loopback(
+        self: Self,
+        fabric: Fabric,
+        switch: Switch,
+        container: SwitchContainer,
+    ) -> None:
+
+        iface = Interface("system0")
+        container.interfaces.interfaces[iface.name] = iface
+
+        spine_index = fabric.spines.index(switch)
+        subnet = list(fabric.pool.loopbacks.hosts())
+        loopback = subnet[spine_index]
+
+        iface.admin_state = True
+        iface.kind = InterfaceKind.L3
+        iface.description = "EVPN TEP/OSPF loopback"
+        iface.ips[0] = IPv4Interface(f"{loopback}/32")

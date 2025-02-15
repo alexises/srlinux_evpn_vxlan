@@ -8,9 +8,9 @@ fabrics:
       links: 10.1.10.0/24
     spines:
       - name: S-S1-SP-CLI-01
-        address: "172.100.100.10"
-      - name: S-S1-SP-CLI-02
         address: "172.100.100.11"
+      - name: S-S1-SP-CLI-02
+        address: "172.100.100.12"
     lifs:
       - name: S-S1-LF-CLI-0101
         address: "172.100.100.101"

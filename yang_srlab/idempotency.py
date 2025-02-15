@@ -165,24 +165,29 @@ class IdempotencyManager:
             else:
                 self._console.log(f"no diff for {sw_sto.switch.name}", style="green")
 
-    def valitate_config(self: Self) -> None:
+    def valitate_config(self: Self) -> bool:
         """Validate configuration before commiting it.
 
         Args:
             self (Self): self
+        Return:
+            bool: true if all config are validated successfully. false otherwise.
         """
         self._console.log("validate ", style="bold yellow")
         for sw_sto in self._switchs:
             client = _build_srclient(sw_sto.switch)
             validate_info = client.validate("/", sw_sto.merged_config)
-            result = validate_info["result"][0]
-            if result == {}:
+            if "error" in validate_info:
                 self._console.log(
-                    f"Switch {sw_sto.switch.name} successfully validated",
-                    style="green",
+                    f"Switch {sw_sto.switch.name} failed : {validate_info["error"]["message"]}",
+                    style="red",
                 )
-            else:
-                self._console.log(f"Switch {sw_sto.switch.name} failed : {result}")
+                return False
+            self._console.log(
+                f"Switch {sw_sto.switch.name} successfully validated",
+                style="green",
+            )
+        return True
 
     def commit_config(self: Self) -> None:
         """Commit configuration the switch.
@@ -215,6 +220,9 @@ class IdempotencyManager:
             self.print_config()
         if self._with_diff:
             self.generate_diff()
-        self.valitate_config()
+        validation_status = self.valitate_config()
+        if not validation_status:
+            self._console.log("Exit due to validation error", style="red")
+            return
         if self._with_commit:
             self.commit_config()

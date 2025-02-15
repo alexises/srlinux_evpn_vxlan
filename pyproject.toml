@@ -29,7 +29,7 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["T201", "ERA001"]
+ignore = ["RUF015"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
