@@ -17,6 +17,8 @@ from pydantic_srlinux.models.interfaces import (
     SubinterfaceListEntry,
 )
 
+DEFAULT_MTU = 1500
+
 
 class InterfaceKind(Enum):
     """Define interface kind."""
@@ -35,6 +37,7 @@ class Interface:
     admin_state: bool = field(default=False, init=False)
     kind: InterfaceKind = field(default=InterfaceKind.Undefined, init=False)
     ips: dict[int, IPv4Interface] = field(default_factory=dict)
+    mtu: int = field(default=DEFAULT_MTU)
 
     def to_yang(self: Self) -> InterfaceListEntry:
         """Return yang object suitable for seralization.
@@ -63,6 +66,7 @@ class Interface:
             description=self.description if self.description else None,
             admin_state=EnumerationEnum.enable if self.admin_state else EnumerationEnum.disable,
             subinterface=subinterfaces if subinterfaces != [] else None,
+            mtu=self.mtu if self.mtu != DEFAULT_MTU else None,
         )
 
 

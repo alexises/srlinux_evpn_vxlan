@@ -123,6 +123,7 @@ class YangController:
             port.admin_state = True
             port.kind = InterfaceKind.L3
             port.ips[0] = IPv4Interface(f"{leaf_spine_interface}/31")
+            port.mtu = 9000
 
             # add port to routing interface
             container.router.interfaces.append(f"{port_name}.0")
@@ -152,6 +153,7 @@ class YangController:
             port.admin_state = True
             port.kind = InterfaceKind.L3
             port.ips[0] = IPv4Interface(f"{leaf_spine_interface}/31")
+            port.mtu = 9000
 
             # add port to routing instance
             container.router.interfaces.append(f"{port_name}.0")
