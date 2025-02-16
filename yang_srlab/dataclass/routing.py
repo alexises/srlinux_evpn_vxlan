@@ -1,63 +1,32 @@
 """Generate common info for routing protocol."""
 
+from dataclasses import dataclass, field
 from ipaddress import IPv4Address
 from typing import Self
 
 from pydantic_srlinux.models.network_instance import (
     EnumerationEnum,
+    InstanceListEntry6,
     InterfaceListEntry,
     LinuxContainer,
     Model,
     NetworkInstanceListEntry,
+    OspfContainer,
     ProtocolsContainer,
 )
 
 
+def _default_addr() -> IPv4Address:
+    return IPv4Address("0.0.0.0")  # noqa: S104
+
+
+@dataclass
 class RoutingContainer:
     """Store info for routing protocol."""
 
-    def __init__(self: Self) -> None:
-        """Constructor.
-
-        Args:
-            self (Self): self
-        """
-        self._router_id: IPv4Address = IPv4Address("0.0.0.0")  # noqa: S104
-        self._interfaces: list[str] = []
-
-    @property
-    def router_id(self: Self) -> IPv4Address:
-        """Get router id.
-
-        Args:
-            self (Self): self.
-
-        Returns:
-            IPv4Address : router id
-        """
-        return self._router_id
-
-    @router_id.setter
-    def router_id(self: Self, router_id: IPv4Address) -> None:
-        """Set router id.
-
-        Args:
-            self (Self): self
-            router_id (IPv4Address): store router id
-        """
-        self._router_id = router_id
-
-    @property
-    def interface(self: Self) -> list[str]:
-        """Get interface on the vrf.
-
-        Args:
-            self (Self): self
-
-        Returns:
-            list[str]: interface config
-        """
-        return self._interfaces
+    router_id: IPv4Address = field(default_factory=_default_addr)
+    interfaces: list[str] = field(default_factory=list)
+    area: IPv4Address = field(default_factory=_default_addr)
 
     def to_yamg(self: Self) -> Model:
         """Get yang model associated with this model.
@@ -68,7 +37,7 @@ class RoutingContainer:
         Returns:
             Model: yang model.
         """
-        interfaces = [InterfaceListEntry(name=i) for i in self._interfaces]
+        interfaces = [InterfaceListEntry(name=i) for i in self.interfaces]
 
         return Model(
             network_instance=[
@@ -88,6 +57,18 @@ class RoutingContainer:
                             import_routes=True,
                             export_routes=True,
                             export_neighbors=True,
+                        ),
+                        ospf=OspfContainer(
+                            instance=[
+                                InstanceListEntry6(
+                                    name="EVPN-UNDERLAY",
+                                    admin_state=EnumerationEnum.enable,
+                                    router_id=str(self.router_id),
+                                    version="ospf-v2",
+                                    max_ecmp_paths=4,
+                                    area=None,
+                                ),
+                            ],
                         ),
                     ),
                 ),

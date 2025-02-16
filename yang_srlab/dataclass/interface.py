@@ -1,5 +1,6 @@
 """Describe interfaces."""
 
+from dataclasses import InitVar, dataclass, field
 from enum import Enum
 from ipaddress import IPv4Interface
 from typing import Self
@@ -25,111 +26,15 @@ class InterfaceKind(Enum):
     Undefined = ""
 
 
+@dataclass
 class Interface:
     """Define interface configuration."""
 
-    def __init__(self: Self, name: str) -> None:
-        """Base container for interface.
-
-        Args:
-            self (Self): self
-            name (str): name of interface
-        """
-        self._name: str = name
-        self._description: str = ""
-        self._admin_state: bool = False
-        self._kind: InterfaceKind = InterfaceKind.Undefined
-        self._ips: dict[int, IPv4Interface] = {}
-
-    @property
-    def name(self: Self) -> str:
-        """Get interface name.
-
-        Args:
-            self (Self): _description_
-
-        Returns:
-            str: _description_
-        """
-        return self._name
-
-    @property
-    def description(self: Self) -> str:
-        """Get interface description.
-
-        Args:
-            self (Self): self
-
-        Returns:
-            str: interface description
-        """
-        return self._description
-
-    @description.setter
-    def description(self: Self, description: str) -> None:
-        """Set interface description.
-
-        Args:
-            self (Self): self
-            description (str): description to set.
-        """
-        self._description = description
-
-    @property
-    def admin_state(self: Self) -> bool:
-        """Get admin state of interface.
-
-        Args:
-            self (Self): self
-
-        Returns:
-            bool: true if state is up, false if down
-        """
-        return self._admin_state
-
-    @admin_state.setter
-    def admin_state(self: Self, admin_state: bool) -> None:
-        """Set admin state of interface.
-
-        Args:
-            self (Self): self
-            admin_state (bool): state of interface to set.
-        """
-        self._admin_state = admin_state
-
-    @property
-    def kind(self: Self) -> InterfaceKind:
-        """Get interface kind.
-
-        Args:
-            self (Self): self
-
-        Returns:
-            InterfaceKind: self
-        """
-        return self._kind
-
-    @kind.setter
-    def kind(self: Self, kind: InterfaceKind) -> None:
-        """Set interface kind.
-
-        Args:
-            self (Self): self
-            kind (InterfaceKind): interface kind
-        """
-        self._kind = kind
-
-    @property
-    def ips(self: Self) -> dict[int, IPv4Interface]:
-        """Get ips lists.
-
-        Args:
-            self (Self): self
-
-        Returns:
-            dict[int, IPv4Interface]: ip list
-        """
-        return self._ips
+    name: str
+    description: str = field(default="", init=False)
+    admin_state: bool = field(default=False, init=False)
+    kind: InterfaceKind = field(default=InterfaceKind.Undefined, init=False)
+    ips: dict[int, IPv4Interface] = field(default_factory=dict)
 
     def to_yang(self: Self) -> InterfaceListEntry:
         """Return yang object suitable for seralization.
@@ -141,8 +46,8 @@ class Interface:
             InterfaceListEntry: YangObject
         """
         subinterfaces: list[SubinterfaceListEntry] = []
-        if self._kind == InterfaceKind.L3:
-            for vlan_id, ip in self._ips.items():
+        if self.kind == InterfaceKind.L3:
+            for vlan_id, ip in self.ips.items():
                 subif = SubinterfaceListEntry(
                     index=vlan_id,
                     admin_state=EnumerationEnum.enable,
@@ -161,32 +66,23 @@ class Interface:
         )
 
 
+@dataclass
 class InterfaceContainer:
     """Store the whole interface block on a switch."""
 
-    def __init__(self: Self, interface_count: int = 20) -> None:
+    interfaces: dict[str, Interface] = field(default_factory=dict, init=False)
+    interface_count: InitVar[int] = 20
+
+    def __post_init__(self: Self, interface_count: int) -> None:
         """Constructor.
 
         Args:
             self (Self): self
             interface_count (int): Number of interface on the switch
         """
-        self._interfaces: dict[str, Interface] = {}
         for i in range(interface_count):
             iface_template = f"ethernet-1/{i+1}"
-            self._interfaces[iface_template] = Interface(iface_template)
-
-    @property
-    def interfaces(self: Self) -> dict[str, Interface]:
-        """Get interface list.
-
-        Args:
-            self (Self): self
-
-        Returns:
-            dict[str, Interface]: desc.
-        """
-        return self._interfaces
+            self.interfaces[iface_template] = Interface(iface_template)
 
     def shutdown_all_interface(self: Self) -> None:
         """Shutdown all interface for basic configuration setup.
@@ -194,7 +90,7 @@ class InterfaceContainer:
         Args:
             self (Self): self.
         """
-        for interface in self._interfaces.values():
+        for interface in self.interfaces.values():
             interface.admin_state = False
 
     def to_yang(self: Self) -> Model:
@@ -206,7 +102,7 @@ class InterfaceContainer:
         Returns:
             InterfaceListEntry: YangObject
         """
-        ifaces = [i.to_yang() for i in self._interfaces.values()]
+        ifaces = [i.to_yang() for i in self.interfaces.values()]
 
         # manualy creating the management interface
         mgmt_iface = InterfaceListEntry(
