@@ -62,7 +62,9 @@ class YangController:
             fabric (Fabric): fabric object of the switch
             switch (Switch): switch object to compute.
         """
+        container.interfaces.shutdown_all_interface()
         container.router.area = IPv4Address(fabric.id)
+        container.router.asn = 65100 + fabric.id // 100
 
     def compute_leaf(
         self: Self,
@@ -78,8 +80,6 @@ class YangController:
             fabric (Fabric): fabric object of the switch
             switch (Switch): switch object to compute.
         """
-        container.interfaces.shutdown_all_interface()
-
         self._compute_spine_link(fabric, switch, container)
         self._compute_leaf_loopback(fabric, switch, container)
 
@@ -97,8 +97,7 @@ class YangController:
             fabric (Fabric): fabric object of the switch
             switch (Switch): switch object to compute.
         """
-        container.interfaces.shutdown_all_interface()
-
+        container.router.rr = True
         self._compute_leaf_link(fabric, switch, container)
         self._compute_spine_loopback(fabric, switch, container)
 
@@ -127,6 +126,9 @@ class YangController:
 
             # add port to routing interface
             container.router.interfaces.append(f"{port_name}.0")
+            # add evpn peer
+            leaf_loopback = list(fabric.pool.loopbacks.hosts())[32 + leaf_index]
+            container.router.evpn_peers[leaf.name] = leaf_loopback
 
     def _compute_spine_link(
         self: Self,
@@ -153,6 +155,9 @@ class YangController:
 
             # add port to routing instance
             container.router.interfaces.append(f"{port_name}.0")
+            # add evpn peer
+            spine_loopback = list(fabric.pool.loopbacks.hosts())[spine_index]
+            container.router.evpn_peers[spine.name] = spine_loopback
 
     def _compute_leaf_loopback(
         self: Self,

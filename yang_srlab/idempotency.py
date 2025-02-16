@@ -25,6 +25,7 @@ def _cleanup_candidate_config(diff: str) -> str:
         .replace("srl_nokia-network-instance:", "")
         .replace("srl_nokia-linux:", "")
         .replace("srl_nokia-ospf:", "")
+        .replace("srl_nokia-bgp:", "")
     )
 
 
