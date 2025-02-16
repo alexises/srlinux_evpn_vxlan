@@ -38,6 +38,7 @@ class Fabric(BaseModel):
     lifs: list[Switch]
     pool: FabricPool
     site: str
+    id: int
 
 
 class Metamodel(BaseModel):

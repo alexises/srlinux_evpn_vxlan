@@ -3,6 +3,7 @@ default:
   password: NokiaSrl1!
 fabrics:
   - site: S1
+    id: 1000
     pool:
       loopbacks: 10.1.0.0/24
       links: 10.1.10.0/24
@@ -17,6 +18,7 @@ fabrics:
       - name: S-S1-LF-CLI-0102
         address: "172.100.100.102"
   - site: S2
+    id: 2000
     pool:
       loopbacks: 10.2.0.0/24
       links: 10.2.10.0/24

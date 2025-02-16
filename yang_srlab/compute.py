@@ -1,6 +1,6 @@
 """Make conputation to transform meta model into Yang represantation."""
 
-from ipaddress import IPv4Interface
+from ipaddress import IPv4Address, IPv4Interface
 from typing import Self
 
 from .dataclass import SwitchContainer
@@ -35,44 +35,72 @@ class YangController:
             for leaf in site.lifs:
                 if leaf.name not in allowed_switch and allowed_switch != []:
                     continue
-                computed_switch.append((leaf, self.compute_leaf(site, leaf)))
+                container = SwitchContainer()
+                self.compute_switch(container, site, leaf)
+                self.compute_leaf(container, site, leaf)
+                computed_switch.append((leaf, container.to_yang()))
             for spine in site.spines:
                 if spine.name not in allowed_switch and allowed_switch != []:
                     continue
-                computed_switch.append((spine, self.compute_spine(site, spine)))
+                container = SwitchContainer()
+                self.compute_switch(container, site, spine)
+                self.compute_spine(container, site, spine)
+                computed_switch.append((spine, container.to_yang()))
         return computed_switch
 
-    def compute_leaf(self: Self, fabric: Fabric, switch: Switch) -> dict:
+    def compute_switch(
+        self: Self,
+        container: SwitchContainer,
+        fabric: Fabric,
+        switch: Switch,  # noqa: ARG002
+    ) -> None:
+        """Compute common configuration for switch.
+
+        Args:
+            self (Self): Self.
+            container (SwitchContainer): container
+            fabric (Fabric): fabric object of the switch
+            switch (Switch): switch object to compute.
+        """
+        container.router.area = IPv4Address(fabric.id)
+
+    def compute_leaf(
+        self: Self,
+        container: SwitchContainer,
+        fabric: Fabric,
+        switch: Switch,
+    ) -> None:
         """Compute configuration for leaf.
 
         Args:
             self (Self): Self.
+            container (SwitchContainer): container
             fabric (Fabric): fabric object of the switch
             switch (Switch): switch object to compute.
         """
-        container = SwitchContainer()
         container.interfaces.shutdown_all_interface()
 
         self._compute_spine_link(fabric, switch, container)
         self._compute_leaf_loopback(fabric, switch, container)
 
-        return container.to_yang()
-
-    def compute_spine(self: Self, fabric: Fabric, switch: Switch) -> dict:
+    def compute_spine(
+        self: Self,
+        container: SwitchContainer,
+        fabric: Fabric,
+        switch: Switch,
+    ) -> None:
         """Compute configuration for leaf.
 
         Args:
             self (Self): Self.
+            container (SwitchContainer): container
             fabric (Fabric): fabric object of the switch
             switch (Switch): switch object to compute.
         """
-        container = SwitchContainer()
         container.interfaces.shutdown_all_interface()
 
         self._compute_leaf_link(fabric, switch, container)
         self._compute_spine_loopback(fabric, switch, container)
-
-        return container.to_yang()
 
     def _compute_leaf_link(
         self: Self,
