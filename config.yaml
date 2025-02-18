@@ -13,10 +13,16 @@ fabrics:
       - name: S-S1-SP-CLI-02
         address: "172.100.100.12"
     lifs:
-      - name: S-S1-LF-CLI-0101
+      - id: 101
+        name: S-S1-LF-CLI-0101
         address: "172.100.100.101"
-      - name: S-S1-LF-CLI-0102
+      - id: 102
+        name: S-S1-LF-CLI-0102
         address: "172.100.100.102"
+    ports:
+      - { sw: 101, if: 1, tpl: ESXi, desc: ESX1 }
+      - { sw: [101, 102], if: 2, tpl: ESXi, desc: ESXi2 }
+      - { sw: 102, if: 2, tpl: ESXi, desc: Err }
   - site: S2
     id: 2000
     pool:
@@ -28,7 +34,20 @@ fabrics:
       - name: S-S2-SP-CLI-02
         address: "172.100.100.22"
     lifs:
-      - name: S-S2-LF-CLI-0101
+      - id: 201
+        name: S-S2-LF-CLI-0101
         address: "172.100.100.201"
-      - name: S-S2-LF-CLI-0102
+      - id: 202
+        name: S-S2-LF-CLI-0102
         address: "172.100.100.202"
+clients:
+  client1:
+    networks:
+      Lan1:
+        vlan_id: 42
+        subnet: 192.168.1.1/24
+templates:
+  - name: ESXi
+    type: esx
+    clients:
+      - client1
