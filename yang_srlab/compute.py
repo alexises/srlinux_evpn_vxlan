@@ -5,7 +5,7 @@ from typing import Self
 
 from .dataclass import SwitchContainer
 from .dataclass.interface import Interface, InterfaceKind
-from .metamodel import Fabric, Metamodel, Switch
+from .metamodel import Fabric, LeafSwitch, Metamodel, Switch
 
 
 class YangController:
@@ -30,7 +30,7 @@ class YangController:
         Return:
             list[tuple[Switch, dict]]: computed config.
         """
-        computed_switch = []
+        computed_switch: list[tuple[Switch, dict]] = []
         for site in self._model.fabrics:
             for leaf in site.lifs:
                 if leaf.name not in allowed_switch and allowed_switch != []:
@@ -70,7 +70,7 @@ class YangController:
         self: Self,
         container: SwitchContainer,
         fabric: Fabric,
-        switch: Switch,
+        switch: LeafSwitch,
     ) -> None:
         """Compute configuration for leaf.
 
@@ -78,7 +78,7 @@ class YangController:
             self (Self): Self.
             container (SwitchContainer): container
             fabric (Fabric): fabric object of the switch
-            switch (Switch): switch object to compute.
+            switch (LeafSwitch): switch object to compute.
         """
         self._compute_spine_link(fabric, switch, container)
         self._compute_leaf_loopback(fabric, switch, container)
@@ -134,7 +134,7 @@ class YangController:
     def _compute_spine_link(
         self: Self,
         fabric: Fabric,
-        switch: Switch,
+        switch: LeafSwitch,
         container: SwitchContainer,
     ) -> None:
         for spine_index, spine in enumerate(fabric.spines):
@@ -164,7 +164,7 @@ class YangController:
     def _compute_leaf_loopback(
         self: Self,
         fabric: Fabric,
-        switch: Switch,
+        switch: LeafSwitch,
         container: SwitchContainer,
     ) -> None:
 

@@ -5,7 +5,7 @@ from ipaddress import IPv4Address, IPv4Interface, IPv4Network
 from pathlib import Path
 from typing import Self
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_validator
 from pydantic_yaml import parse_yaml_raw_as
 
 
@@ -23,6 +23,26 @@ class Switch(BaseModel):
     address: IPv4Address
     username: str = Field(default="")
     password: str = Field(default="")
+    _ports: dict[int, "Port"] = PrivateAttr(default_factory=dict)
+
+    @property
+    def ports(self: Self) -> dict[int, "Port"]:
+        """Get ports associated to this switch.
+
+        Returns:
+            dict[int, Port] port associated with this switch
+        """
+        return self._ports
+
+    @ports.setter
+    def ports(self: Self, ports: dict[int, "Port"]) -> None:
+        """Set port associated to this switch.
+
+        Args:
+            self (Self): self
+            ports (dict[int, Port]): ports.
+        """
+        self._ports = ports
 
 
 class LeafSwitch(Switch):
@@ -107,6 +127,9 @@ class Port(BaseModel):
             switch (tuple[Switch, Switch]): switch.
         """
         self._switch = switch
+        switch1, switch2 = switch
+        switch1.ports[self.iface] = self
+        switch2.ports[self.iface] = self
 
 
 class Fabric(BaseModel):
