@@ -24,6 +24,7 @@ class Switch(BaseModel):
     username: str = Field(default="")
     password: str = Field(default="")
     _ports: dict[int, "Port"] = PrivateAttr(default_factory=dict)
+    _fabric: "Fabric"
 
     @property
     def ports(self: Self) -> dict[int, "Port"]:
@@ -43,6 +44,31 @@ class Switch(BaseModel):
             ports (dict[int, Port]): ports.
         """
         self._ports = ports
+
+    @property
+    def fabric(self: Self) -> "Fabric":
+        """Get associated fabric of this switch.
+
+        Args:
+            self (Self): self
+
+        Returns:
+            Fabric: fabric.
+        """
+        return self._fabric
+
+    @fabric.setter
+    def fabric(self: Self, fabric: "Fabric") -> None:
+        """Get associated fabric of this switch.
+
+        Args:
+            self (Self): self
+            fabric (Fabric): fabric to set
+
+        Returns:
+            Fabric: fabric.
+        """
+        self._fabric = fabric
 
 
 class LeafSwitch(Switch):
@@ -172,6 +198,8 @@ class Fabric(BaseModel):
             self._leaf_index = {leaf.id: leaf for leaf in self.lifs}
             sw1, sw2 = port.switch_str
             port.switch = (self._leaf_index[sw1], self._leaf_index[sw2])
+        for switch in self.lifs + self.spines:
+            switch.fabric = self
 
 
 class ClientNetwork(BaseModel):

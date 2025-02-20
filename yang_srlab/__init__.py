@@ -4,7 +4,8 @@ from argparse import ArgumentParser, Namespace
 
 from rich.console import Console
 
-from .compute import YangController
+from .compute.compute import YangController
+from .compute.template_scanner import scan
 from .idempotency import IdempotencyManager
 from .metamodel import get_model
 
@@ -28,6 +29,8 @@ def main() -> None:
     """Main entrypoint."""
     console = Console()
     args = parse_args()
+    scan("yang_srlab.templates")
+
     model = get_model(args.configfile)
 
     console.log("read metamodel", style="bold yellow")
