@@ -8,7 +8,7 @@ from .compute.compute import YangController
 from .compute.template_scanner import scan
 from .idempotency import IdempotencyManager
 from .metamodel import get_model
-from .yang_model.templates import scan_yang
+from .yang_model import scan_yang
 
 
 def parse_args() -> Namespace:

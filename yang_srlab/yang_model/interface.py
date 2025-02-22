@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import Self
 
 from yang_srlab.dataclass import SwitchContainer
-from yang_srlab.yang_model.templates import get_yang_func_from_group
 
 
 @dataclass
@@ -33,5 +32,3 @@ class YangInterafece(ABC):
         Args:
             self (Self): self.
         """
-        for callback in get_yang_func_from_group(self.kind):
-            callback(self)

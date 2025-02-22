@@ -1,10 +1,9 @@
 """Base config."""
 
-from yang_srlab.yang_model.srlinux import SRLinuxYang
-from yang_srlab.yang_model.templates import template_group
+from yang_srlab.yang_model.srlinux import SRLinuxYang, srlinux_template
 
 
-@template_group("srlinux")
+@srlinux_template
 def base(model: SRLinuxYang) -> None:
     """Set base configuration.
 

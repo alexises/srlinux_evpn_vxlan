@@ -3,52 +3,55 @@
 import importlib
 import pkgutil
 from collections.abc import Callable
+from typing import Generic, Self, TypeVar
 
 from yang_srlab.yang_model.interface import YangInterafece
 
-# Use the concrete type instead of a generic type variable.
-_yang_template_functions: dict[str, list[Callable[[YangInterafece], None]]] = {}
+T = TypeVar("T", bound=YangInterafece)
 
 
-def template_group(
-    group: str,
-) -> Callable[[Callable[[YangInterafece], None]], Callable[[YangInterafece], None]]:
-    """Store a template into a template group stack.
+class TemplateGroup(Generic[T]):
+    """Define template group."""
 
-    Args:
-        group (str): group associated with this template.
-    """
+    def __init__(self: Self) -> None:
+        """Init.
 
-    def _decorator(func: Callable[[YangInterafece], None]) -> Callable[[YangInterafece], None]:
-        if group not in _yang_template_functions:
-            _yang_template_functions[group] = []
-        _yang_template_functions[group].append(func)
+        Args:
+            self (Self): self.
+        """
+        self.functions: list[Callable[[T], None]] = []
+
+    def register(self: Self, func: Callable[[T], None]) -> Callable[[T], None]:
+        """Register callback.
+
+        Args:
+            func (Callable[[T], None]): function.
+
+        Returns:
+            Callable[[T], None]: callback
+        """
+        self.functions.append(func)
         return func
 
-    return _decorator
+    def run(self: Self, instance: T) -> None:
+        """Run functions.
 
+        Args:
+            instance (T): _description_
+        """
+        for func in self.functions:
+            func(instance)
 
-def get_yang_func_from_group(group: str) -> list[Callable[[YangInterafece], None]]:
-    """Get list of templating function from groups.
+    def scan(self: Self, package_name: str) -> None:
+        """Scan module for decorator.
 
-    Args:
-        group (str): group to check.
-
-    Returns:
-        list[Callable[[YangInterafece], None]]: list of functions.
-    """
-    return _yang_template_functions.get(group, [])
-
-
-def scan_yang(package_name: str) -> None:
-    """Scan modules for decorator.
-
-    Args:
-        package_name (str): package to scan
-    """
-    package = importlib.import_module(package_name)
-    for _loader, module_name, _is_pkg in pkgutil.walk_packages(
-        package.__path__,
-        package.__name__ + ".",
-    ):
-        importlib.import_module(module_name)
+        Args:
+            self (Self): self
+            package_name (str): package to scan
+        """
+        package = importlib.import_module(package_name)
+        for _loader, module_name, _is_pkg in pkgutil.walk_packages(
+            package.__path__,
+            package.__name__ + ".",
+        ):
+            importlib.import_module(module_name)
