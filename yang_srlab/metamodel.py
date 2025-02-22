@@ -9,6 +9,12 @@ from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_valid
 from pydantic_yaml import parse_yaml_raw_as
 
 
+class SwitchKind(Enum):
+    """Describe switch kind."""
+
+    srlinux = "srlinux"
+
+
 class Default(BaseModel):
     """Describe default option for configuration."""
 
@@ -20,6 +26,7 @@ class Switch(BaseModel):
     """Representation of switch config."""
 
     name: str
+    kind: SwitchKind
     address: IPv4Address
     username: str = Field(default="")
     password: str = Field(default="")

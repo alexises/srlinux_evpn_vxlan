@@ -43,7 +43,7 @@ class YangController:
                 continue
             container = ComputeContainer(["common", switch_category], switch)
             container.run()
-            computed.append((switch, container.container.to_yang()))
+            computed.append((switch, container.to_yang()))
         return computed
 
     def compute_all(self, allowed_switch: list[str]) -> list[tuple[Switch, dict]]:

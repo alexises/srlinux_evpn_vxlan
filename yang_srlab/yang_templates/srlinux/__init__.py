@@ -1,0 +1,1 @@
+"""Define templates for srlinux."""
