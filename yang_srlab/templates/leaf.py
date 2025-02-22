@@ -70,3 +70,38 @@ def compute_loopback(sto: ComputeContainer) -> None:
     # also set router_id conviniently
     sto.container.router.router_id = loopback
     sto.container.router.interfaces.append("system0.0")
+
+
+@template_group("leaf")
+def compute_clients(sto: ComputeContainer) -> None:
+    """Compute uplink to spine.
+
+    Args:
+        sto (ComputeContainer): container.
+    """
+    clients: dict[str, int] = {}
+    vlans: dict[str, int] = {}
+    for port in sto.switch.ports.values():
+        for client in port.template.clients:
+            clients[client.name] = client.id
+            for vlan in client.networks.values():
+                vlans[vlan.name] = vlan.vlan_id
+
+    sto.container.router.clients = clients
+    sto.container.router.vlans = vlans
+
+
+@template_group("leaf")
+def compute_interface(sto: ComputeContainer) -> None:
+    """Compute interface.
+
+    Args:
+        sto (ComputeContainer): container.
+    """
+    for port in sto.switch.ports.values():
+        iface_name = f"ethernet-1/{port.iface}"
+        iface_model = sto.container.interfaces.interfaces[iface_name]
+        iface_model.description = port.description
+        iface_model.kind = InterfaceKind.L2
+        for client in port.template.clients:
+            iface_model.vlans = [network.vlan_id for network in client.networks.values()]

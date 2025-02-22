@@ -26,6 +26,7 @@ def _cleanup_candidate_config(diff: str) -> str:
         .replace("srl_nokia-linux:", "")
         .replace("srl_nokia-ospf:", "")
         .replace("srl_nokia-bgp:", "")
+        .replace("srl_nokia-tunnel-interfaces:", "")
     )
 
 
@@ -206,6 +207,9 @@ class IdempotencyManager:
         for sw_sto in self._switchs:
             client = _build_srclient(sw_sto.switch)
             validate_info = client.commit("/", sw_sto.merged_config)
+            if "result" not in validate_info:
+                self._console.log(validate_info, style="red")
+                continue
             result = validate_info["result"][0]
             if result == {}:
                 self._console.log(

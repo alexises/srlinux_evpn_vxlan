@@ -247,6 +247,7 @@ class InterfaceKind(Enum):
 class Client(BaseModel):
     """Define client infrastructure."""
 
+    id: int
     name: str
     networks: dict[str, ClientNetwork]
 

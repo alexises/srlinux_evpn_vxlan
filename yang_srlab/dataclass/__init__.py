@@ -52,6 +52,7 @@ class SwitchContainer:
         """
         interface = self._interfaces.to_yang()
         router = self._routing.to_yamg()
+        tunnel = self._routing.to_yang_tunnel()
 
         return {
             **interface.model_dump(
@@ -60,10 +61,6 @@ class SwitchContainer:
                 exclude_unset=True,
                 by_alias=True,
             ),
-            **router.model_dump(
-                mode="json",
-                exclude_none=True,
-                exclude_unset=True,
-                by_alias=True,
-            ),
+            **router.model_dump(mode="json", exclude_none=True, exclude_unset=True, by_alias=True),
+            **tunnel.model_dump(mode="json", exclude_none=True, exclude_unset=True, by_alias=True),
         }

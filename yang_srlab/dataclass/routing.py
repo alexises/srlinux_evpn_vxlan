@@ -26,6 +26,15 @@ from pydantic_srlinux.models.network_instance import (
     ProtocolsContainer,
     RouteReflectorContainer2,
     TransportContainer3,
+    VxlanInterfaceListEntry,
+)
+from pydantic_srlinux.models.tunnel_interfaces import (
+    IngressContainer,
+    TunnelInterfaceListEntry,
+)
+from pydantic_srlinux.models.tunnel_interfaces import Model as TunnelModel
+from pydantic_srlinux.models.tunnel_interfaces import (
+    VxlanInterfaceListEntry as TunnelVxlanInterfaceListEntry,
 )
 
 
@@ -43,6 +52,30 @@ class RoutingContainer:
     asn: int = field(default=0)
     rr: bool = field(default=False)
     evpn_peers: dict[str, IPv4Address] = field(default_factory=dict)
+    clients: dict[str, int] = field(default_factory=dict)
+    vlans: dict[str, int] = field(default_factory=dict)
+
+    def _get_l2_tunnel(self: Self) -> list[TunnelVxlanInterfaceListEntry]:
+        vxlan_interface: list[TunnelVxlanInterfaceListEntry] = []
+        for vlan_id in self.vlans.values():
+            iface = TunnelVxlanInterfaceListEntry(
+                index=vlan_id,
+                type="bridged",
+                ingress=IngressContainer(vni=vlan_id),
+            )
+            vxlan_interface.append(iface)
+        return vxlan_interface
+
+    def _get_l3_tunnel(self: Self) -> list[TunnelVxlanInterfaceListEntry]:
+        vxlan_intefaces: list[TunnelVxlanInterfaceListEntry] = []
+        for client_id in self.clients.values():
+            iface = TunnelVxlanInterfaceListEntry(
+                index=client_id + 10000,
+                type="routed",
+                ingress=IngressContainer(vni=client_id + 10000),
+            )
+            vxlan_intefaces.append(iface)
+        return vxlan_intefaces
 
     def _get_ospf(self: Self) -> OspfContainer:
         iface = [
@@ -105,6 +138,81 @@ class RoutingContainer:
             neighbor=neighs,
         )
 
+    def _get_clients_vrf(self: Self) -> list[NetworkInstanceListEntry]:
+        vrfs = []
+        for client_name, client_id in self.clients.items():
+            vrf = NetworkInstanceListEntry(
+                name=f"CLIENT_{client_name.upper()}",
+                admin_state=EnumerationEnum.enable,
+                type="ip-vrf",
+                interface=[],
+                vxlan_interface=[
+                    VxlanInterfaceListEntry(name=f"vxlan1.{client_id+10000}"),
+                ],
+            )
+            vrfs.append(vrf)
+        return vrfs
+
+    def _get_layer2_vrf(self: Self) -> list[NetworkInstanceListEntry]:
+        vrfs = []
+        for vlan_name, vlan_id in self.vlans.items():
+            vrf = NetworkInstanceListEntry(
+                name=f"VLAN_{vlan_name.upper()}",
+                admin_state=EnumerationEnum.enable,
+                type="mac-vrf",
+                interface=[InterfaceListEntry(name=f"irb0.{vlan_id}")],
+                vxlan_interface=[
+                    VxlanInterfaceListEntry(name=f"vxlan1.{vlan_id}"),
+                ],
+            )
+            vrfs.append(vrf)
+        return vrfs
+
+    def _get_default_vrf(self: Self) -> list[NetworkInstanceListEntry]:
+        interfaces = [InterfaceListEntry(name=i) for i in self.interfaces]
+        return [
+            NetworkInstanceListEntry(
+                name="default",
+                router_id=str(self.router_id),
+                interface=interfaces,
+                protocols=ProtocolsContainer(
+                    ospf=self._get_ospf(),
+                    bgp=self._get_bgp(),
+                ),
+            ),
+            NetworkInstanceListEntry(
+                name="mgmt",
+                admin_state=EnumerationEnum.enable,
+                type="ip-vrf",
+                description="Management network instance",
+                interface=[InterfaceListEntry(name="mgmt0.0")],
+                protocols=ProtocolsContainer(
+                    linux=LinuxContainer(
+                        import_routes=True,
+                        export_routes=True,
+                        export_neighbors=True,
+                    ),
+                ),
+            ),
+        ]
+
+    def to_yang_tunnel(self: Self) -> TunnelModel:
+        """Get yang tunnel model.
+
+        Args:
+            self (Self): self.
+
+        Returns:
+            TunnelModel: tunnel model
+        """
+        l3tunnel = self._get_l3_tunnel()
+        l2tunnel = self._get_l2_tunnel()
+        return TunnelModel(
+            tunnel_interface=[
+                TunnelInterfaceListEntry(name="vxlan1", vxlan_interface=l3tunnel + l2tunnel),
+            ],
+        )
+
     def to_yamg(self: Self) -> Model:
         """Get yang model associated with this model.
 
@@ -114,32 +222,11 @@ class RoutingContainer:
         Returns:
             Model: yang model.
         """
-        interfaces = [InterfaceListEntry(name=i) for i in self.interfaces]
+        default_vrfs = self._get_default_vrf()
+        clients = self._get_clients_vrf()
+        l2 = self._get_layer2_vrf()
 
+        vrfs = default_vrfs + clients + l2
         return Model(
-            network_instance=[
-                NetworkInstanceListEntry(
-                    name="default",
-                    router_id=str(self.router_id),
-                    interface=interfaces,
-                    protocols=ProtocolsContainer(
-                        ospf=self._get_ospf(),
-                        bgp=self._get_bgp(),
-                    ),
-                ),
-                NetworkInstanceListEntry(
-                    name="mgmt",
-                    admin_state=EnumerationEnum.enable,
-                    type="ip-vrf",
-                    description="Management network instance",
-                    interface=[InterfaceListEntry(name="mgmt0.0")],
-                    protocols=ProtocolsContainer(
-                        linux=LinuxContainer(
-                            import_routes=True,
-                            export_routes=True,
-                            export_neighbors=True,
-                        ),
-                    ),
-                ),
-            ],
+            network_instance=vrfs,
         )

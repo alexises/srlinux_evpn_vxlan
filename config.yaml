@@ -42,6 +42,7 @@ fabrics:
         address: "172.100.100.202"
 clients:
   client1:
+    id: 666
     networks:
       Lan1:
         vlan_id: 42
