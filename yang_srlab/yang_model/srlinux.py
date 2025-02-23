@@ -5,8 +5,10 @@ from __future__ import annotations
 from dataclasses import field
 from typing import TYPE_CHECKING, Self
 
+from pydantic_srlinux.models.interfaces import InterfaceListEntry
 from pydantic_srlinux.models.interfaces import Model as InterfacesModel
 from pydantic_srlinux.models.network_instance import Model as NEModel
+from pydantic_srlinux.models.network_instance import NetworkInstanceListEntry
 from pydantic_srlinux.models.tunnel_interfaces import Model as TunnelModel
 
 from .interface import YangInterafece
@@ -29,6 +31,8 @@ class SRLinuxYang(YangInterafece):
     vrfs: NEModel = field(default_factory=NEModel)
     tunnel: TunnelModel = field(default_factory=TunnelModel)
     interfaces: InterfacesModel = field(default_factory=InterfacesModel)
+    vrfs_objs: dict[str, NetworkInstanceListEntry] = field(default_factory=dict)
+    interfaces_objs: dict[str, InterfaceListEntry] = field(default_factory=dict)
 
     def __post_init__(self: Self) -> None:
         """Set kind."""
