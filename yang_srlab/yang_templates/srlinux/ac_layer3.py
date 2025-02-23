@@ -3,14 +3,11 @@
 from typing import cast
 
 import pydantic_srlinux.models.interfaces as mif
+import pydantic_srlinux.models.tunnel_interfaces as tun
 from pydantic_srlinux.models.network_instance import (
     EnumerationEnum,
     NetworkInstanceListEntry,
     VxlanInterfaceListEntry,
-)
-from pydantic_srlinux.models.tunnel_interfaces import IngressContainer
-from pydantic_srlinux.models.tunnel_interfaces import (
-    VxlanInterfaceListEntry as TunnelVxlanInterfaceListEntry,
 )
 
 from yang_srlab.yang_model.srlinux import SRLinuxYang, srlinux_template
@@ -36,18 +33,20 @@ def layer3_vrfs(model: SRLinuxYang) -> None:
 @srlinux_template
 def layer3_evpn(model: SRLinuxYang) -> None:
     """Define VXLAN tunnel interface for VRF."""
-    vxlan_intefaces: list[TunnelVxlanInterfaceListEntry] = []
+    vxlan_intefaces: list[tun.VxlanInterfaceListEntry] = []
     for client_id in model.sw.router.clients.values():
-        iface = TunnelVxlanInterfaceListEntry(
+        iface = tun.VxlanInterfaceListEntry(
             index=client_id + 10000,
             type="routed",
-            ingress=IngressContainer(vni=client_id + 10000),
+            ingress=tun.IngressContainer(vni=client_id + 10000),
         )
         vxlan_intefaces.append(iface)
-    tun_iface = cast(list[TunnelVxlanInterfaceListEntry], model.tunnel.tunnel_interface)
-    tun_iface += vxlan_intefaces
+    tun_iface = cast(list[tun.TunnelInterfaceListEntry], model.tunnel.tunnel_interface)
+    vxlan_iface = cast(list[tun.VxlanInterfaceListEntry], tun_iface[0].vxlan_interface)
+    vxlan_iface += vxlan_intefaces
 
 
+@srlinux_template
 def layer3_subinterfaces(model: SRLinuxYang) -> None:
     """Define layer 3 subinterfaces."""
     for iface_name, iface in model.sw.interfaces.interfaces.items():

@@ -27,6 +27,7 @@ def _cleanup_candidate_config(diff: str) -> str:
         .replace("srl_nokia-ospf:", "")
         .replace("srl_nokia-bgp:", "")
         .replace("srl_nokia-tunnel-interfaces:", "")
+        .replace("srl_nokia-interfaces-vlans:", "")
     )
 
 

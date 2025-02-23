@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import field
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Self
 
 from pydantic_srlinux.models.interfaces import InterfaceListEntry
@@ -25,6 +25,7 @@ def srlinux_template(func: Callable[[SRLinuxYang], None]) -> Callable[[SRLinuxYa
     return srlinux_templates.register(func)
 
 
+@dataclass
 class SRLinuxYang(YangInterafece):
     """Define SRLinuxYang Model."""
 
@@ -38,7 +39,12 @@ class SRLinuxYang(YangInterafece):
         """Set kind."""
         self.kind = "srlinux"
 
-    def run(self: Self) -> None:  # noqa: D102
+    def run(self: Self) -> None:
+        """Run all methods against object.
+
+        Args:
+            self (Self): self
+        """
         srlinux_templates.run(self)
 
     def to_yang(self: Self) -> dict:

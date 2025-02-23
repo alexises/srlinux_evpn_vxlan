@@ -10,15 +10,19 @@ fabrics:
     spines:
       - name: S-S1-SP-CLI-01
         address: "172.100.100.11"
+        kind: srlinux
       - name: S-S1-SP-CLI-02
         address: "172.100.100.12"
+        kind: srlinux
     lifs:
       - id: 101
         name: S-S1-LF-CLI-0101
         address: "172.100.100.101"
+        kind: srlinux
       - id: 102
         name: S-S1-LF-CLI-0102
         address: "172.100.100.102"
+        kind: srlinux
     ports:
       - { sw: 101, if: 1, tpl: ESXi, desc: ESX1 }
       - { sw: [101, 102], if: 2, tpl: ESXi, desc: ESXi2 }
@@ -31,15 +35,19 @@ fabrics:
     spines:
       - name: S-S2-SP-CLI-01
         address: "172.100.100.21"
+        kind: srlinux
       - name: S-S2-SP-CLI-02
         address: "172.100.100.22"
+        kind: srlinux
     lifs:
       - id: 201
         name: S-S2-LF-CLI-0101
         address: "172.100.100.201"
+        kind: srlinux
       - id: 202
         name: S-S2-LF-CLI-0102
         address: "172.100.100.202"
+        kind: srlinux
 clients:
   client1:
     id: 666

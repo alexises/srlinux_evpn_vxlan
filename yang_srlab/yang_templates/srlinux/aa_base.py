@@ -3,6 +3,7 @@
 from typing import cast
 
 import pydantic_srlinux.models.interfaces as mif
+import pydantic_srlinux.models.tunnel_interfaces as tun
 from pydantic_srlinux.models.network_instance import (
     AfiSafiListEntry,
     AreaListEntry,
@@ -28,13 +29,14 @@ from pydantic_srlinux.models.network_instance import (
 
 from yang_srlab.yang_model.srlinux import SRLinuxYang, srlinux_template
 
-DEFAULT_MTU = 1600
+DEFAULT_MTU = 1500
 
 
 @srlinux_template
 def prepare(model: SRLinuxYang) -> None:
     """Prepare model for other usages."""
-    model.tunnel.tunnel_interface = []
+    model.tunnel.tunnel_interface = [tun.TunnelInterfaceListEntry(name="vxlan1")]
+    model.tunnel.tunnel_interface[0].vxlan_interface = []
     model.interfaces.interface = []
 
 
@@ -180,9 +182,7 @@ def base_interfaces(mode: SRLinuxYang) -> None:
     for interface_name, interface in mode.sw.interfaces.interfaces.items():
         iface_obj = mif.InterfaceListEntry(
             name=interface_name,
-            vlan_tagging=(
-                True if "ethernet-" in interface_name and interface.with_tagging else None
-            ),
+            vlan_tagging=(True if "ethernet-" in interface_name else None),
             description=interface.description if interface.description else None,
             admin_state=(
                 mif.EnumerationEnum.enable if interface.admin_state else mif.EnumerationEnum.disable
