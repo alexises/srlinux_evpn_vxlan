@@ -81,14 +81,18 @@ def compute_clients(sto: ComputeContainer) -> None:
     """
     clients: dict[str, int] = {}
     vlans: dict[str, int] = {}
+    subnets: dict[int, IPv4Interface] = {}
+
     for port in sto.switch.ports.values():
         for client in port.template.clients:
             clients[client.name] = client.id
             for vlan in client.networks.values():
                 vlans[vlan.name] = vlan.vlan_id
+                subnets[vlan.vlan_id] = vlan.subnet
 
     sto.container.router.clients = clients
     sto.container.router.vlans = vlans
+    sto.container.router.subnets = subnets
 
 
 @template_group("leaf")

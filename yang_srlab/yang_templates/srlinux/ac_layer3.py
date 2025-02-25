@@ -67,3 +67,29 @@ def layer3_subinterfaces(model: SRLinuxYang) -> None:
             model.interfaces_objs[iface_name].subinterface,
         )
         subinterfaces_obj += subinterfaces
+
+
+@srlinux_template
+def anycast_gw_svi(model: SRLinuxYang) -> None:
+    """Define anycast gateway interface."""
+    irb_iface = mif.InterfaceListEntry(
+        name="irb0",
+        admin_state=mif.EnumerationEnum.enable,
+    )
+    irb_iface.subinterface = []
+
+    reverse_vlan = model.sw.router.reverse_vlan
+
+    for vlan_id, subnet in model.sw.router.subnets.items():
+        subinterface = mif.SubinterfaceListEntry(
+            index=vlan_id,
+            description=f"SVI {reverse_vlan[vlan_id].upper()}",
+            anycast_gw=mif.AnycastGwContainer(),
+            ipv4=mif.Ipv4Container(
+                admin_state=mif.EnumerationEnum.enable,
+                address=[mif.AddressListEntry(ip_prefix=str(subnet), anycast_gw=True)],
+            ),
+        )
+        irb_iface.subinterface.append(subinterface)
+
+    model.interfaces_objs["irb0"] = irb_iface

@@ -3,13 +3,8 @@
 from typing import cast
 
 import pydantic_srlinux.models.interfaces as mif
+import pydantic_srlinux.models.network_instance as ni
 import pydantic_srlinux.models.tunnel_interfaces as tun
-from pydantic_srlinux.models.network_instance import (
-    EnumerationEnum,
-    InterfaceListEntry,
-    NetworkInstanceListEntry,
-    VxlanInterfaceListEntry,
-)
 
 from yang_srlab.yang_model.srlinux import SRLinuxYang, srlinux_template
 
@@ -19,14 +14,28 @@ def layer2_vrfs(model: SRLinuxYang) -> None:
     """Configure L2 VRF."""
     for vlan_name, vlan_id in model.sw.router.vlans.items():
         vrf_name = f"VLAN_{vlan_name.upper()}"
-        vrf = NetworkInstanceListEntry(
-            name=vrf_name,
-            admin_state=EnumerationEnum.enable,
-            type="mac-vrf",
-            interface=[InterfaceListEntry(name=f"irb0.{vlan_id}")],
-            vxlan_interface=[
-                VxlanInterfaceListEntry(name=f"vxlan1.{vlan_id}"),
+        vxlan_iface = f"vxlan1.{vlan_id}"
+        evpn_proto = ni.BgpEvpnContainer(
+            bgp_instance=[
+                ni.BgpInstanceListEntry(
+                    id=1,
+                    ecmp=4,
+                    evi=vlan_id,
+                    admin_state=ni.EnumerationEnum.enable,
+                    vxlan_interface=vxlan_iface,
+                ),
             ],
+        )
+
+        vrf = ni.NetworkInstanceListEntry(
+            name=vrf_name,
+            admin_state=ni.EnumerationEnum.enable,
+            type="mac-vrf",
+            interface=[ni.InterfaceListEntry(name=f"irb0.{vlan_id}")],
+            vxlan_interface=[
+                ni.VxlanInterfaceListEntry(name=vxlan_iface),
+            ],
+            protocols=ni.ProtocolsContainer(bgp_evpn=evpn_proto),
         )
         model.vrfs_objs[vrf_name] = vrf
 
@@ -70,3 +79,14 @@ def layer2_subintefaces(model: SRLinuxYang) -> None:
             model.interfaces_objs[iface_name].subinterface,
         )
         subinterfaces_obj += subinterfaces
+
+
+@srlinux_template
+def layer2_vrf_subinterfaces_member(model: SRLinuxYang) -> None:
+    """Define association with l2 vrf subinterfaces."""
+    reverse_vlan = model.sw.router.reverse_vlan
+    for iface_name, iface in model.sw.interfaces.interfaces.items():
+        for vlan_id in iface.vlans:
+            vrf_name = f"VLAN_{reverse_vlan[vlan_id].upper()}"
+            interfaces = cast(list[ni.InterfaceListEntry], model.vrfs_objs[vrf_name].interface)
+            interfaces.append(ni.InterfaceListEntry(name=f"{iface_name}.{vlan_id}"))
