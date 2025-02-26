@@ -9,6 +9,7 @@ from pydantic_srlinux.models.interfaces import InterfaceListEntry
 from pydantic_srlinux.models.interfaces import Model as InterfacesModel
 from pydantic_srlinux.models.network_instance import Model as NEModel
 from pydantic_srlinux.models.network_instance import NetworkInstanceListEntry
+from pydantic_srlinux.models.routing_policy import Model as RPModel
 from pydantic_srlinux.models.tunnel_interfaces import Model as TunnelModel
 
 from .interface import YangInterafece
@@ -32,6 +33,7 @@ class SRLinuxYang(YangInterafece):
     vrfs: NEModel = field(default_factory=NEModel)
     tunnel: TunnelModel = field(default_factory=TunnelModel)
     interfaces: InterfacesModel = field(default_factory=InterfacesModel)
+    routing_policy: RPModel = field(default_factory=RPModel)
     vrfs_objs: dict[str, NetworkInstanceListEntry] = field(default_factory=dict)
     interfaces_objs: dict[str, InterfaceListEntry] = field(default_factory=dict)
 
@@ -70,6 +72,12 @@ class SRLinuxYang(YangInterafece):
                 by_alias=True,
             ),
             **self.interfaces.model_dump(
+                mode="json",
+                exclude_none=True,
+                exclude_unset=True,
+                by_alias=True,
+            ),
+            **self.routing_policy.model_dump(
                 mode="json",
                 exclude_none=True,
                 exclude_unset=True,

@@ -5,6 +5,7 @@ from ipaddress import IPv4Interface
 from yang_srlab.compute.container import ComputeContainer
 from yang_srlab.compute.template_scanner import template_group
 from yang_srlab.dataclass.interface import Interface, InterfaceKind
+from yang_srlab.dataclass.routing import VRFInfo
 
 
 @template_group("leaf")
@@ -81,14 +82,14 @@ def compute_clients(sto: ComputeContainer) -> None:
     """
     clients: dict[str, int] = {}
     vlans: dict[str, int] = {}
-    subnets: dict[int, IPv4Interface] = {}
+    subnets: dict[int, VRFInfo] = {}
 
     for port in sto.switch.ports.values():
         for client in port.template.clients:
             clients[client.name] = client.id
             for vlan in client.networks.values():
                 vlans[vlan.name] = vlan.vlan_id
-                subnets[vlan.vlan_id] = vlan.subnet
+                subnets[vlan.vlan_id] = VRFInfo(vlan.subnet, client.name)
 
     sto.container.router.clients = clients
     sto.container.router.vlans = vlans
@@ -105,6 +106,7 @@ def compute_interface(sto: ComputeContainer) -> None:
     for port in sto.switch.ports.values():
         iface_name = f"ethernet-1/{port.iface}"
         iface_model = sto.container.interfaces.interfaces[iface_name]
+        iface_model.admin_state = True
         iface_model.description = port.description
         iface_model.kind = InterfaceKind.L2
         for client in port.template.clients:

@@ -29,6 +29,7 @@ def _cleanup_candidate_config(diff: str) -> str:
         .replace("srl_nokia-tunnel-interfaces:", "")
         .replace("srl_nokia-interfaces-vlans:", "")
         .replace("srl_nokia-bgp-evpn:", "")
+        .replace("srl_nokia-routing-policy:", "")
     )
 
 

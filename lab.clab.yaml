@@ -5,7 +5,7 @@ mgmt:
 topology:
   kinds:
     nokia_srlinux:
-      image: ghcr.io/nokia/srlinux
+      image: ghcr.io/nokia/srlinux:24.10.2
       type: ixrd3
   nodes:
     DCI-01:
@@ -35,6 +35,20 @@ topology:
     S-S2-LF-CLI-0102:
       kind: nokia_srlinux
       mgmt-ipv4: 172.100.100.202
+    CLIENT1:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - ip link add link eth1 name eth1.42 type vlan id 42
+        - ip link set dev eth1.42 up
+        - ip addr add dev eth1.42 192.168.1.10/24
+    CLIENT2:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - ip link add link eth1 name eth1.42 type vlan id 42
+        - ip link set dev eth1.42 up
+        - ip addr add dev eth1.42 192.168.1.20/24
   links:
     - endpoints:
         - "S-S1-LF-CLI-0101:ethernet-1/19"
@@ -72,3 +86,9 @@ topology:
     - endpoints:
         - "S-S2-SP-CLI-02:ethernet-1/20"
         - "DCI-01:ethernet-1/4"
+    - endpoints:
+        - "S-S1-LF-CLI-0101:ethernet-1/1"
+        - "CLIENT1:eth1"
+    - endpoints:
+        - "S-S1-LF-CLI-0102:ethernet-1/1"
+        - "CLIENT2:eth1"

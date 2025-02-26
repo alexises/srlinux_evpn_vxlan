@@ -33,6 +33,20 @@ class Switch(BaseModel):
     _ports: dict[int, "Port"] = PrivateAttr(default_factory=dict)
     _fabric: "Fabric"
 
+    def __eq__(self: Self, other: object) -> bool:
+        """Check equity.
+
+        Args:
+            self (Self): self
+            other (object): other
+
+        Returns:
+            bool: true if object had the same description, false otherwise
+        """
+        if not isinstance(other, Switch):
+            return False
+        return other.name == self.name
+
     @property
     def ports(self: Self) -> dict[int, "Port"]:
         """Get ports associated to this switch.

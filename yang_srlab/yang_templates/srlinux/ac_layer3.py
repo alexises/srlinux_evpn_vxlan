@@ -3,12 +3,8 @@
 from typing import cast
 
 import pydantic_srlinux.models.interfaces as mif
+import pydantic_srlinux.models.network_instance as ni
 import pydantic_srlinux.models.tunnel_interfaces as tun
-from pydantic_srlinux.models.network_instance import (
-    EnumerationEnum,
-    NetworkInstanceListEntry,
-    VxlanInterfaceListEntry,
-)
 
 from yang_srlab.yang_model.srlinux import SRLinuxYang, srlinux_template
 
@@ -18,13 +14,13 @@ def layer3_vrfs(model: SRLinuxYang) -> None:
     """Define layer3 vrfs for clients."""
     for client_name, client_id in model.sw.router.clients.items():
         vrf_name = f"CLIENT_{client_name.upper()}"
-        vrf = NetworkInstanceListEntry(
+        vrf = ni.NetworkInstanceListEntry(
             name=vrf_name,
-            admin_state=EnumerationEnum.enable,
+            admin_state=ni.EnumerationEnum.enable,
             type="ip-vrf",
             interface=[],
             vxlan_interface=[
-                VxlanInterfaceListEntry(name=f"vxlan1.{client_id+10000}"),
+                ni.VxlanInterfaceListEntry(name=f"vxlan1.{client_id+10000}"),
             ],
         )
         model.vrfs_objs[vrf_name] = vrf
@@ -70,6 +66,16 @@ def layer3_subinterfaces(model: SRLinuxYang) -> None:
 
 
 @srlinux_template
+def layer3_irb_mapping(model: SRLinuxYang) -> None:
+    """Set IRB interface mapping."""
+    for vlan_id, subnet_info in model.sw.router.subnets.items():
+        vrf_name = f"CLIENT_{subnet_info.vrf.upper()}"
+        iface = f"irb0.{vlan_id}"
+        ifaces = cast(list[ni.InterfaceListEntry], model.vrfs_objs[vrf_name].interface)
+        ifaces.append(ni.InterfaceListEntry(name=iface))
+
+
+@srlinux_template
 def anycast_gw_svi(model: SRLinuxYang) -> None:
     """Define anycast gateway interface."""
     irb_iface = mif.InterfaceListEntry(
@@ -80,14 +86,14 @@ def anycast_gw_svi(model: SRLinuxYang) -> None:
 
     reverse_vlan = model.sw.router.reverse_vlan
 
-    for vlan_id, subnet in model.sw.router.subnets.items():
+    for vlan_id, vrf_info in model.sw.router.subnets.items():
         subinterface = mif.SubinterfaceListEntry(
             index=vlan_id,
             description=f"SVI {reverse_vlan[vlan_id].upper()}",
             anycast_gw=mif.AnycastGwContainer(),
             ipv4=mif.Ipv4Container(
                 admin_state=mif.EnumerationEnum.enable,
-                address=[mif.AddressListEntry(ip_prefix=str(subnet), anycast_gw=True)],
+                address=[mif.AddressListEntry(ip_prefix=str(vrf_info.subnet), anycast_gw=True)],
             ),
         )
         irb_iface.subinterface.append(subinterface)

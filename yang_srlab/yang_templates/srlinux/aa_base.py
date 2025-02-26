@@ -3,29 +3,9 @@
 from typing import cast
 
 import pydantic_srlinux.models.interfaces as mif
+import pydantic_srlinux.models.network_instance as ni
+import pydantic_srlinux.models.routing_policy as rp
 import pydantic_srlinux.models.tunnel_interfaces as tun
-from pydantic_srlinux.models.network_instance import (
-    AfiSafiListEntry,
-    AreaListEntry,
-    BgpContainer,
-    DottedQuadType,
-    EnumerationEnum,
-    EnumerationEnum223,
-    EvpnContainer,
-    GroupListEntry,
-    InstanceListEntry6,
-    InterfaceListEntry,
-    InterfaceListEntry11,
-    Ipv4AddressType,
-    Ipv4AddressWithZoneType,
-    LinuxContainer,
-    NeighborListEntry,
-    NetworkInstanceListEntry,
-    OspfContainer,
-    ProtocolsContainer,
-    RouteReflectorContainer2,
-    TransportContainer3,
-)
 
 from yang_srlab.yang_model.srlinux import SRLinuxYang, srlinux_template
 
@@ -47,23 +27,23 @@ def base_vrfs(model: SRLinuxYang) -> None:
     Args:
         model (SRLinuxYang): model
     """
-    interfaces = [InterfaceListEntry(name=i) for i in model.sw.router.interfaces]
+    interfaces = [ni.InterfaceListEntry(name=i) for i in model.sw.router.interfaces]
     model.vrfs.network_instance = []
-    model.vrfs_objs["default"] = NetworkInstanceListEntry(
+    model.vrfs_objs["default"] = ni.NetworkInstanceListEntry(
         name="default",
         router_id=str(model.sw.router.router_id),
         interface=interfaces,
-        protocols=ProtocolsContainer(),
+        protocols=ni.ProtocolsContainer(),
     )
 
-    model.vrfs_objs["mgmt"] = NetworkInstanceListEntry(
+    model.vrfs_objs["mgmt"] = ni.NetworkInstanceListEntry(
         name="mgmt",
-        admin_state=EnumerationEnum.enable,
+        admin_state=ni.EnumerationEnum.enable,
         type="ip-vrf",
         description="Management network instance",
-        interface=[InterfaceListEntry(name="mgmt0.0")],
-        protocols=ProtocolsContainer(
-            linux=LinuxContainer(
+        interface=[ni.InterfaceListEntry(name="mgmt0.0")],
+        protocols=ni.ProtocolsContainer(
+            linux=ni.LinuxContainer(
                 import_routes=True,
                 export_routes=True,
                 export_neighbors=True,
@@ -80,24 +60,24 @@ def underlay(model: SRLinuxYang) -> None:
         model (SRLinuxYang): model.
     """
     iface = [
-        InterfaceListEntry11(
+        ni.InterfaceListEntry11(
             interface_name=i,
-            interface_type=EnumerationEnum223.point_to_point,
+            interface_type=ni.EnumerationEnum223.point_to_point,
         )
         for i in model.sw.router.interfaces
     ]
 
-    protocols = cast(ProtocolsContainer, model.vrfs_objs["default"].protocols)
-    protocols.ospf = OspfContainer(
+    protocols = cast(ni.ProtocolsContainer, model.vrfs_objs["default"].protocols)
+    protocols.ospf = ni.OspfContainer(
         instance=[
-            InstanceListEntry6(
+            ni.InstanceListEntry6(
                 name="EVPN-UNDERLAY",
-                admin_state=EnumerationEnum.enable,
+                admin_state=ni.EnumerationEnum.enable,
                 router_id=str(model.sw.router.router_id),
                 version="ospf-v2",
                 max_ecmp_paths=4,
                 area=[
-                    AreaListEntry(area_id=str(model.sw.router.area), interface=iface),
+                    ni.AreaListEntry(area_id=str(model.sw.router.area), interface=iface),
                 ],
             ),
         ],
@@ -111,40 +91,42 @@ def overlay(model: SRLinuxYang) -> None:
     Args:
         model (SRLinuxYang): model
     """
-    rr_config = RouteReflectorContainer2(
+    rr_config = ni.RouteReflectorContainer2(
         client=True,
-        cluster_id=DottedQuadType(str(model.sw.router.area)),
+        cluster_id=ni.DottedQuadType(str(model.sw.router.area)),
     )
     neighs = [
-        NeighborListEntry(
-            peer_address=Ipv4AddressWithZoneType(str(peer_ip)),
+        ni.NeighborListEntry(
+            peer_address=ni.Ipv4AddressWithZoneType(str(peer_ip)),
             description=f"SPINE {peer_name}",
             peer_group="EVPN_OVERLAY",
-            transport=TransportContainer3(
-                local_address=Ipv4AddressType(str(model.sw.router.router_id)),
+            transport=ni.TransportContainer3(
+                local_address=ni.Ipv4AddressType(str(model.sw.router.router_id)),
             ),
         )
         for peer_name, peer_ip in model.sw.router.evpn_peers.items()
     ]
-    protocols = cast(ProtocolsContainer, model.vrfs_objs["default"].protocols)
-    protocols.bgp = BgpContainer(
-        admin_state=EnumerationEnum.enable,
-        router_id=Ipv4AddressType(str(model.sw.router.router_id)),
+    protocols = cast(ni.ProtocolsContainer, model.vrfs_objs["default"].protocols)
+    protocols.bgp = ni.BgpContainer(
+        admin_state=ni.EnumerationEnum.enable,
+        router_id=ni.Ipv4AddressType(str(model.sw.router.router_id)),
         autonomous_system=model.sw.router.asn,
         afi_safi=[
-            AfiSafiListEntry(
+            ni.AfiSafiListEntry(
                 afi_safi_name="evpn",
-                admin_state=EnumerationEnum.enable,
-                evpn=EvpnContainer(),
+                admin_state=ni.EnumerationEnum.enable,
+                evpn=ni.EvpnContainer(),
             ),
         ],
         group=[
-            GroupListEntry(
+            ni.GroupListEntry(
                 group_name="EVPN_OVERLAY",
                 description="EVPN overlay",
                 next_hop_self=True,
                 peer_as=model.sw.router.asn,
                 route_reflector=rr_config if model.sw.router.rr else None,
+                export_policy=[ni.ExportPolicyLeafList3("all")],
+                import_policy=[ni.ImportPolicyLeafList3("all")],
             ),
         ],
         neighbor=neighs,
@@ -191,3 +173,16 @@ def base_interfaces(mode: SRLinuxYang) -> None:
             mtu=interface.mtu if interface.mtu != DEFAULT_MTU else None,
         )
         mode.interfaces_objs[interface_name] = iface_obj
+
+
+@srlinux_template
+def routing_policy(mode: SRLinuxYang) -> None:
+    """Define base routing policy."""
+    mode.routing_policy.routing_policy = rp.RoutingPolicyContainer(
+        policy=[
+            rp.PolicyListEntry(
+                name="all",
+                default_action=rp.DefaultActionContainer(policy_result=rp.EnumerationEnum2.accept),
+            ),
+        ],
+    )

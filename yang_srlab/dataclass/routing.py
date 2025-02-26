@@ -10,6 +10,14 @@ def _default_addr() -> IPv4Address:
 
 
 @dataclass
+class VRFInfo:
+    """Define association between subnet and vrf."""
+
+    subnet: IPv4Interface
+    vrf: str
+
+
+@dataclass
 class RoutingContainer:
     """Store info for routing protocol."""
 
@@ -21,7 +29,7 @@ class RoutingContainer:
     evpn_peers: dict[str, IPv4Address] = field(default_factory=dict)
     clients: dict[str, int] = field(default_factory=dict)
     vlans: dict[str, int] = field(default_factory=dict)
-    subnets: dict[int, IPv4Interface] = field(default_factory=dict)
+    subnets: dict[int, VRFInfo] = field(default_factory=dict)
 
     @property
     def reverse_vlan(self: Self) -> dict[int, str]:
