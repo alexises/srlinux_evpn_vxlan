@@ -164,7 +164,9 @@ def base_interfaces(mode: SRLinuxYang) -> None:
     for interface_name, interface in mode.sw.interfaces.interfaces.items():
         iface_obj = mif.InterfaceListEntry(
             name=interface_name,
-            vlan_tagging=(True if "ethernet-" in interface_name else None),
+            vlan_tagging=(
+                True if "ethernet-" in interface_name or "lag" in interface_name else None
+            ),
             description=interface.description if interface.description else None,
             admin_state=(
                 mif.EnumerationEnum.enable if interface.admin_state else mif.EnumerationEnum.disable
@@ -173,6 +175,40 @@ def base_interfaces(mode: SRLinuxYang) -> None:
             mtu=interface.mtu if interface.mtu != DEFAULT_MTU else None,
         )
         mode.interfaces_objs[interface_name] = iface_obj
+
+
+@srlinux_template
+def lag_child_interface(node: SRLinuxYang) -> None:
+    """Link child interface into LACP interface.
+
+    Args:
+        node (SRLinuxYang): node
+    """
+    for lag_id, lag_members in node.sw.interfaces.lags.items():
+        for lag_member in lag_members:
+            iface_object = node.interfaces_objs[lag_member]
+            iface_object.admin_state = mif.EnumerationEnum.enable
+            iface_object.vlan_tagging = None
+            iface_object.ethernet = mif.EthernetContainer(aggregate_id=f"lag{lag_id}")
+
+
+@srlinux_template
+def lag_parent_interface(node: SRLinuxYang) -> None:
+    """Define LAG for parent interfaces."""
+    for lag_id in node.sw.interfaces.lags:
+        lag_iface_name = f"lag{lag_id}"
+        iface_object = node.interfaces_objs[lag_iface_name]
+        iface_object.lag = mif.LagContainer(
+            lag_type=mif.EnumerationEnum86.lacp,
+            lacp_fallback_mode=mif.EnumerationEnum88.static,
+            lacp=mif.LacpContainer3(
+                lacp_mode=mif.EnumerationEnum90.active,
+                interval=mif.EnumerationEnum93.fast,
+                system_id_mac=node.sw.system_id,
+                admin_key=lag_id,
+                system_priority=lag_id,
+            ),
+        )
 
 
 @srlinux_template

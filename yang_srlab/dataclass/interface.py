@@ -35,6 +35,7 @@ class InterfaceContainer:
     """Store the whole interface block on a switch."""
 
     interfaces: dict[str, Interface] = field(default_factory=dict, init=False)
+    lags: dict[int, list[str]] = field(default_factory=dict, init=False)
     interface_count: InitVar[int] = 20
 
     def __post_init__(self: Self, interface_count: int) -> None:

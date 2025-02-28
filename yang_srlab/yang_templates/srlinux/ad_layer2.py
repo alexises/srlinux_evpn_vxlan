@@ -26,6 +26,20 @@ def layer2_vrfs(model: SRLinuxYang) -> None:
                 ),
             ],
         )
+        rt = f"target:{model.sw.router.asn}:{vlan_id}"
+        vpn_proto = ni.BgpVpnContainer2(
+            bgp_instance=[
+                ni.BgpInstanceListEntry3(
+                    id=1,
+                    route_target=(
+                        ni.RouteTargetContainer3(
+                            export_rt=ni.BgpExtCommunityTypeType1(rt),
+                            import_rt=ni.BgpExtCommunityTypeType1(rt),
+                        )
+                    ),
+                ),
+            ],
+        )
 
         vrf = ni.NetworkInstanceListEntry(
             name=vrf_name,
@@ -35,7 +49,7 @@ def layer2_vrfs(model: SRLinuxYang) -> None:
             vxlan_interface=[
                 ni.VxlanInterfaceListEntry(name=vxlan_iface),
             ],
-            protocols=ni.ProtocolsContainer(bgp_evpn=evpn_proto),
+            protocols=ni.ProtocolsContainer(bgp_evpn=evpn_proto, bgp_vpn=vpn_proto),
         )
         model.vrfs_objs[vrf_name] = vrf
 

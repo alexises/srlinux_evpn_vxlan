@@ -1,15 +1,20 @@
 """This module represent the mapping of cli configuration."""
 
+from dataclasses import dataclass, field
 from typing import Self
 
 from .interface import InterfaceContainer
 from .routing import RoutingContainer
 
 
+@dataclass
 class SwitchContainer:
     """Define the whole switch configuration AST."""
 
-    def __init__(self: Self) -> None:
+    system_id: str = ""
+    ssh_keys: list[str] = field(default_factory=list)
+
+    def __post_init__(self: Self) -> None:
         """Constructor.
 
         Args:

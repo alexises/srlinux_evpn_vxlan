@@ -104,10 +104,32 @@ def compute_interface(sto: ComputeContainer) -> None:
         sto (ComputeContainer): container.
     """
     for port in sto.switch.ports.values():
-        iface_name = f"ethernet-1/{port.iface}"
+        sw1, sw2 = port.switch
+        if sw1 != sw2:
+            sto.container.interfaces.lags[port.iface] = [f"ethernet-1/{port.iface}"]
+            iface_name = f"lag{port.iface}"
+            sto.container.interfaces.interfaces[iface_name] = Interface(iface_name)
+        else:
+            iface_name = f"ethernet-1/{port.iface}"
         iface_model = sto.container.interfaces.interfaces[iface_name]
         iface_model.admin_state = True
         iface_model.description = port.description
         iface_model.kind = InterfaceKind.L2
         for client in port.template.clients:
             iface_model.vlans = [network.vlan_id for network in client.networks.values()]
+
+
+@template_group("leaf")
+def compute_system_id(sto: ComputeContainer) -> None:
+    """Compute the lacp systemid.
+
+    Args:
+        sto (ComputeContainer): container
+    """
+    leaf_id = sto.switch.fabric.lifs.index(sto.switch)  # type: ignore[arg-type]
+    if leaf_id % 2 == 1:
+        leaf_id -= 1
+
+    site_id = sto.switch.fabric.id
+    system_id = f"65:00:01:{site_id % 255:02x}:00:{leaf_id:02x}"
+    sto.container.system_id = system_id

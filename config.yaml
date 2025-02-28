@@ -26,6 +26,7 @@ fabrics:
     ports:
       - { sw: 101, if: 1, tpl: ESXi, desc: ESX1 }
       - { sw: 102, if: 1, tpl: ESXi, desc: ESXi2 }
+      - { sw: [101, 102], if: 2, tpl: ESXi, desc: LAG_ESXi }
   - site: S2
     id: 2000
     pool:
