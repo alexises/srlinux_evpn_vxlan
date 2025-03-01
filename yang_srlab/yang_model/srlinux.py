@@ -38,6 +38,9 @@ class SRLinuxYang(YangInterafece):
     system: SysModel = field(default_factory=SysModel)
     vrfs_objs: dict[str, NetworkInstanceListEntry] = field(default_factory=dict)
     interfaces_objs: dict[str, InterfaceListEntry] = field(default_factory=dict)
+    tls: dict = field(default_factory=dict)
+    logging: dict = field(default_factory=dict)
+    snmp: dict = field(default_factory=dict)
 
     def __post_init__(self: Self) -> None:
         """Set kind."""
@@ -51,6 +54,41 @@ class SRLinuxYang(YangInterafece):
         """
         srlinux_templates.run(self)
 
+    def _fix_yang_model(self: Self, data: dict) -> dict:
+        """Fix part of yang model that is not manageble."""
+        # ssh
+        system = data["srl_nokia-system:system"]
+        ssh_server = system["srl_nokia-ssh:ssh-server"]
+        for i in ssh_server:
+            i["srl_nokia-ssh:network-instance"] = "mgmt"
+
+        # grpc
+        grpc = system["srl_nokia-grpc:grpc-server"]
+        for i in grpc:
+            if i["srl_nokia-grpc:name"] == "eda-insecure-mgmt":
+                continue
+            i["srl_nokia-grpc:network-instance"] = "mgmt"
+
+        # dns
+        dns = system["srl_nokia-dns:dns"]
+        dns["srl_nokia-dns:network-instance"] = "mgmt"
+
+        # tls
+        system["srl_nokia-tls:tls"] = self.tls
+
+        # logging
+        system["srl_nokia-logging:logging"] = self.logging
+
+        # snmp
+        system["srl_nokia-snmp:snmp"] = self.snmp
+
+        # netconf
+        system["srl_nokia-netconf-server:netconf-server"][0][
+            "srl_nokia-netconf-server:ssh-server"
+        ] = "mgmt-netconf"
+
+        return data
+
     def to_yang(self: Self) -> dict:
         """Convert internal model into yang.
 
@@ -60,7 +98,7 @@ class SRLinuxYang(YangInterafece):
         Returns:
             dict: converted yang model
         """
-        return {
+        tmp_dict = {
             **self.vrfs.model_dump(
                 mode="json",
                 exclude_none=True,
@@ -92,3 +130,4 @@ class SRLinuxYang(YangInterafece):
                 by_alias=True,
             ),
         }
+        return self._fix_yang_model(tmp_dict)

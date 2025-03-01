@@ -13,6 +13,9 @@ class SwitchContainer:
 
     system_id: str = ""
     ssh_keys: list[str] = field(default_factory=list)
+    address: str = ""
+    username: str = ""
+    password: str = ""
 
     def __post_init__(self: Self) -> None:
         """Constructor.

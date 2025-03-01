@@ -30,6 +30,9 @@ def _cleanup_candidate_config(diff: str) -> str:
         .replace("srl_nokia-interfaces-vlans:", "")
         .replace("srl_nokia-bgp-evpn:", "")
         .replace("srl_nokia-routing-policy:", "")
+        .replace("srl_nokia-system-network-instance:", "")
+        .replace("srl_nokia-aaa:", "")
+        .replace("srl_nokia-ssh:", "")
     )
 
 
@@ -138,7 +141,7 @@ class IdempotencyManager:
         self._console.log("Collect running config", style="bold yellow")
         for sw_sto in self._switchs:
             client = _build_srclient(sw_sto.switch)
-            sw_sto.add_base_config(client.get_running_config())
+            sw_sto.add_base_config(client.get_running_config("/"))
 
     def print_config(self: Self) -> None:
         """Print configuration that will be pushed.

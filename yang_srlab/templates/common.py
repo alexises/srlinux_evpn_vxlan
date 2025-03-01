@@ -30,3 +30,11 @@ def get_ssh_keys(sto: ComputeContainer) -> None:
         with file.open() as f:
             lines = f.readlines()
             sto.container.ssh_keys.append(lines[0].strip())
+
+
+@template_group("common")
+def set_creedentials(sto: ComputeContainer) -> None:
+    """Set credentials for users."""
+    sto.container.password = sto.switch.password
+    sto.container.username = sto.switch.username
+    sto.container.address = str(sto.switch.address)
