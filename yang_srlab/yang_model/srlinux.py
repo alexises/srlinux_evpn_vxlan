@@ -87,6 +87,24 @@ class SRLinuxYang(YangInterafece):
             "srl_nokia-netconf-server:ssh-server"
         ] = "mgmt-netconf"
 
+        # esi fix
+        paths = [
+            "srl_nokia-system-network-instance:network-instance",
+            "srl_nokia-system-network-instance:protocols",
+            "srl_nokia-system-network-instance:evpn",
+            "srl_nokia-system-network-instance-bgp-evpn-ethernet-segments:ethernet-segments",
+            "srl_nokia-system-network-instance-bgp-evpn-ethernet-segments:bgp-instance",
+        ]
+        bgp_instances = system
+        for path in paths:
+            bgp_instances = bgp_instances.get(path, {})
+
+        basepath = "srl_nokia-system-network-instance-bgp-evpn-ethernet-segments:"
+        for instance in bgp_instances:
+            for segment in instance.get(f"{basepath}ethernet-segment", []):
+                assoc = segment[f"{basepath}interface-association"]
+                del segment[f"{basepath}interface-association"]
+                segment[f"{basepath}interface"] = assoc[f"{basepath}interface"]
         return data
 
     def to_yang(self: Self) -> dict:

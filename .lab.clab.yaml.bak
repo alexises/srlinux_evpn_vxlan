@@ -49,6 +49,22 @@ topology:
         - ip link add link eth1 name eth1.42 type vlan id 42
         - ip link set dev eth1.42 up
         - ip addr add dev eth1.42 192.168.1.20/24
+    CLIENT3:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - ip link add bond0 type bond mode 802.3ad xmit_hash_policy layer3+4 lacp_rate fast
+        - ip link add link bond0 name bond0.42 type vlan id 42
+        - ip link set dev bond0 up
+        - ip link set dev bond0.42 up
+        - ip addr add dev bond0.42 192.168.1.30/24
+        - ip link set dev eth1 down
+        - ip link set dev eth2 down
+        - ip link set dev eth1 master bond0
+        - ip link set dev eth2 master bond0
+        - ip link set dev eth1 up
+        - ip link set dev eth2 up
+
   links:
     - endpoints:
         - "S-S1-LF-CLI-0101:ethernet-1/19"
@@ -92,3 +108,9 @@ topology:
     - endpoints:
         - "S-S1-LF-CLI-0102:ethernet-1/1"
         - "CLIENT2:eth1"
+    - endpoints:
+        - "S-S1-LF-CLI-0101:ethernet-1/2"
+        - "CLIENT3:eth1"
+    - endpoints:
+        - "S-S1-LF-CLI-0102:ethernet-1/2"
+        - "CLIENT3:eth2"

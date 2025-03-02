@@ -26,6 +26,7 @@ def evpn_type_1(model: SRLinuxYang) -> None:
     for lag_id in model.sw.interfaces.lags:
         segment = sys.EthernetSegmentListEntry(
             name=f"lag{lag_id}",
+            admin_state=sys.EnumerationEnum2.enable,
             interface_association=sys.Layer2InterfaceCase(
                 interface=[sys.InterfaceListEntry2(ethernet_interface=f"lag{lag_id}")],
             ),
@@ -33,3 +34,17 @@ def evpn_type_1(model: SRLinuxYang) -> None:
             esi=f"{model.sw.system_id}:42:42:{lag_id // 255:02x}:{lag_id % 255:02x}",
         )
         segments.append(segment)
+
+
+@srlinux_template
+def bgp_vpn(model: SRLinuxYang) -> None:
+    """Define bgp vpn.
+
+    Args:
+        model (SRLinuxYang): model.
+    """
+    nsys = cast(sys.SystemContainer, model.system.system)
+    nei = cast(sys.NetworkInstanceContainer2, nsys.network_instance)
+    protos = cast(sys.ProtocolsContainer2, nei.protocols)
+    protos.bgp_vpn = sys.BgpVpnContainer()
+    protos.bgp_vpn.bgp_instance = [sys.BgpInstanceListEntry3(id=1)]
