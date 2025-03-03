@@ -23,6 +23,7 @@ class RoutingContainer:
 
     router_id: IPv4Address = field(default_factory=_default_addr)
     interfaces: list[str] = field(default_factory=list)
+    interfaces_dci: list[str] = field(default_factory=list)
     area: IPv4Address = field(default_factory=_default_addr)
     asn: int = field(default=0)
     rr: bool = field(default=False)

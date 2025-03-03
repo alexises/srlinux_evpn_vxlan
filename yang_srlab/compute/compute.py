@@ -24,7 +24,7 @@ class YangController:
         self,
         switches: Sequence[Switch],
         allowed_switch: list[str],
-        switch_category: str,
+        switch_category: list[str],
     ) -> list[tuple[Switch, dict]]:
         """Compute configuration for a list of switches based on their category.
 
@@ -41,7 +41,7 @@ class YangController:
             # Only compute for allowed switches (if the allowed_switch list is not empty)
             if allowed_switch and switch.name not in allowed_switch:
                 continue
-            container = ComputeContainer(["common", switch_category], switch)
+            container = ComputeContainer(switch_category, switch)
             container.run()
             computed.append((switch, container.to_yang()))
         return computed
@@ -57,6 +57,19 @@ class YangController:
         """
         computed_switches = []
         for site in self._model.fabrics:
-            computed_switches += self._compute_switches(site.lifs, allowed_switch, "leaf")
-            computed_switches += self._compute_switches(site.spines, allowed_switch, "spine")
+            computed_switches += self._compute_switches(
+                site.lifs,
+                allowed_switch,
+                ["common_all", "common", "leaf"],
+            )
+            computed_switches += self._compute_switches(
+                site.spines,
+                allowed_switch,
+                ["common_all", "common", "spine"],
+            )
+        computed_switches += self._compute_switches(
+            self._model.dci,
+            allowed_switch,
+            ["common_all", "dci"],
+        )
         return computed_switches

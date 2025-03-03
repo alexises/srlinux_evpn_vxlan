@@ -27,7 +27,10 @@ def base_vrfs(model: SRLinuxYang) -> None:
     Args:
         model (SRLinuxYang): model
     """
-    interfaces = [ni.InterfaceListEntry(name=i) for i in model.sw.router.interfaces]
+    interfaces = [
+        ni.InterfaceListEntry(name=i)
+        for i in model.sw.router.interfaces + model.sw.router.interfaces_dci
+    ]
     model.vrfs.network_instance = []
     model.vrfs_objs["default"] = ni.NetworkInstanceListEntry(
         name="default",
@@ -66,7 +69,17 @@ def underlay(model: SRLinuxYang) -> None:
         )
         for i in model.sw.router.interfaces
     ]
+    iface_dci = [
+        ni.InterfaceListEntry11(
+            interface_name=i,
+            interface_type=ni.EnumerationEnum223.point_to_point,
+        )
+        for i in model.sw.router.interfaces_dci
+    ]
 
+    areas = [ni.AreaListEntry(area_id=str(model.sw.router.area), interface=iface)]
+    if iface_dci:
+        areas.append(ni.AreaListEntry(area_id="0.0.0.0", interface=iface_dci))  # noqa: S104
     protocols = cast(ni.ProtocolsContainer, model.vrfs_objs["default"].protocols)
     protocols.ospf = ni.OspfContainer(
         instance=[
@@ -76,9 +89,7 @@ def underlay(model: SRLinuxYang) -> None:
                 router_id=str(model.sw.router.router_id),
                 version="ospf-v2",
                 max_ecmp_paths=4,
-                area=[
-                    ni.AreaListEntry(area_id=str(model.sw.router.area), interface=iface),
-                ],
+                area=areas,
             ),
         ],
     )

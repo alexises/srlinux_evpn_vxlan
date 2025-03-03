@@ -1,12 +1,20 @@
 default:
   username: admin
   password: NokiaSrl1!
+dci:
+  - name: S_DCI_01
+    address: "172.100.100.240"
+    kind: srlinux
+  - name: S_DCI_02
+    address: "172.100.100.241"
+    kind: srlinux
 fabrics:
   - site: S1
     id: 1000
     pool:
       loopbacks: 10.1.0.0/24
       links: 10.1.10.0/24
+      dci: 10.1.20.0/24
     spines:
       - name: S-S1-SP-CLI-01
         address: "172.100.100.11"
@@ -32,6 +40,7 @@ fabrics:
     pool:
       loopbacks: 10.2.0.0/24
       links: 10.2.10.0/24
+      dci: 10.2.20.0/24
     spines:
       - name: S-S2-SP-CLI-01
         address: "172.100.100.21"

@@ -70,3 +70,34 @@ def compute_loopback(sto: ComputeContainer) -> None:
     sto.container.router.rr = True
     sto.container.router.router_id = loopback
     sto.container.router.interfaces.append("system0.0")
+
+
+@template_group("spine")
+def compute_dci(sto: ComputeContainer) -> None:
+    """Define dci config.
+
+    Args:
+        sto (ComputeContainer): storage.
+    """
+    spines = sto.switch.fabric.spines
+    links = sto.switch.fabric.pool.dci
+    spine_index = spines.index(sto.switch)
+
+    for i in range(2):
+        port_index = 19 + i
+        port_name = f"ethernet-1/{port_index}"
+        port = sto.container.interfaces.interfaces[port_name]
+
+        subnet = list(links.subnets(new_prefix=31))
+        subnet_count = len(subnet) // 2
+        subnet_index = subnet_count * i + spine_index
+        spine_dci_subnet = subnet[subnet_index]
+        spine_subnet_interface = list(spine_dci_subnet.hosts())[0]
+
+        port.description = f"DCI_{i + 1} ethernet-1/{spine_index + 1}"
+        port.admin_state = True
+        port.kind = InterfaceKind.L3
+        port.ips[0] = IPv4Interface(f"{spine_subnet_interface}/31")
+        port.mtu = 9000
+
+        sto.container.router.interfaces_dci.append(f"{port_name}.0")

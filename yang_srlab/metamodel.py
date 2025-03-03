@@ -32,6 +32,7 @@ class Switch(BaseModel):
     password: str = Field(default="")
     _ports: dict[int, "Port"] = PrivateAttr(default_factory=dict)
     _fabric: "Fabric"
+    _config: "Metamodel"
 
     def __eq__(self: Self, other: object) -> bool:
         """Check equity.
@@ -91,6 +92,28 @@ class Switch(BaseModel):
         """
         self._fabric = fabric
 
+    @property
+    def config(self: Self) -> "Metamodel":
+        """Get config.
+
+        Args:
+            self (Self): self.
+
+        Returns:
+            Metamodel: metamodel
+        """
+        return self._config
+
+    @config.setter
+    def config(self: Self, config: "Metamodel") -> None:
+        """Set config.
+
+        Args:
+            self (Self): self
+            config (Metamodel): config
+        """
+        self._config = config
+
 
 class LeafSwitch(Switch):
     """Describe a leaf switch."""
@@ -103,6 +126,7 @@ class FabricPool(BaseModel):
 
     loopbacks: IPv4Network
     links: IPv4Network
+    dci: IPv4Network
 
 
 class Port(BaseModel):
@@ -212,7 +236,11 @@ class Fabric(BaseModel):
                 raise ValueError(msg)
         return self
 
-    def resolve_switch(self: Self, templates: dict[str, "InterfaceTemplate"]) -> None:
+    def resolve_switch(
+        self: Self,
+        templates: dict[str, "InterfaceTemplate"],
+        config: "Metamodel",
+    ) -> None:
         """Resolve switch for ports."""
         for port in self.ports:
             port.template = templates[port.template_str]
@@ -221,6 +249,7 @@ class Fabric(BaseModel):
             port.switch = (self._leaf_index[sw1], self._leaf_index[sw2])
         for switch in self.lifs + self.spines:
             switch.fabric = self
+            switch.config = config
 
 
 class ClientNetwork(BaseModel):
@@ -334,6 +363,7 @@ class Metamodel(BaseModel):
     """Define metamodel main class that store all config."""
 
     default: Default
+    dci: list[Switch] = Field(default_factory=list)
     fabrics: list[Fabric] = Field(default_factory=list)
     clients: dict[str, Client] = Field(default_factory=dict)
     templates_list: list[InterfaceTemplate] = Field(default_factory=list, alias="templates")
@@ -366,7 +396,9 @@ class Metamodel(BaseModel):
         for template in self.templates_list:
             template.clients = [self.clients[client_str] for client_str in template.clients_str]
         for fabric in self.fabrics:
-            fabric.resolve_switch(self.templates)
+            fabric.resolve_switch(self.templates, self)
+        for dci in self.dci:
+            dci.config = self
         return self
 
     @property
@@ -387,6 +419,9 @@ class Metamodel(BaseModel):
         Args:
             self (Self): self
         """
+        for dci in self.dci:
+            dci.username = self.default.username if not dci.username else dci.username
+            dci.password = self.default.password if not dci.password else dci.password
         for fabric in self.fabrics:
             for leaf in fabric.lifs:
                 leaf.username = self.default.username if not leaf.username else leaf.username
